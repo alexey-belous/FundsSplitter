@@ -2,24 +2,29 @@ name: Repository check
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.1.101
-    - name: Install dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
-    - name: Test
-      run: dotnet test --no-restore --verbosity normal
+      - uses: actions/checkout@v2
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.101
+      - name: Install app dependencies
+        run: dotnet restore
+        working-directory: ./src/FundsSplitter.App
+      - name: Build app
+        run: dotnet build --configuration Release --no-restore
+        working-directory: ./src/FundsSplitter.App
+      - name: Install test dependencies
+        run: dotnet restore
+        working-directory: ./tests/FundsSplitter.Core.UnitTests
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
+        working-directory: ./src/FundsSplitter.Core.UnitTests
