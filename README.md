@@ -6,9 +6,11 @@
 
 ## Getting started
 ### Required software
+Dotnet core 2.1
 
 
 ### Development
-
+To start an app go to the `./src/FundsSplitter.App` folder and run `dotnet run .` command from your terminal.
 
 ### Tests
+To run unit tests go to the `./tests/FundsSplitter.Core.UnitTests` folder and run `dotnet test`.
