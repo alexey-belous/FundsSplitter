@@ -22,6 +22,9 @@ jobs:
       - name: Build app
         run: dotnet build --configuration Release --no-restore
         working-directory: ./src/FundsSplitter.App
+      - name: Install test dependencies
+        run: dotnet restore
+        working-directory: ./tests/FundsSplitter.Core.UnitTests
       - name: Test
-        run: dotnet test --verbosity normal
+        run: dotnet test --no-restore --verbosity normal
         working-directory: ./tests/FundsSplitter.Core.UnitTests
