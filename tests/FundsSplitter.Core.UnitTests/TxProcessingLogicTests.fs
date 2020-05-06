@@ -133,6 +133,7 @@ module TxProcessingLogicTests =
         Assert.Equal(10.0M, debts.[0].Amount)
 
     [<Fact>]
+    /// See ./docs/debts-resolving-transaction-5-users.md for more info about assetions
     let ``Should compute debts resolving transaction for five users`` () =
         let u1 = users.[0]
         let u2 = users.[1]
