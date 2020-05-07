@@ -3,34 +3,10 @@ namespace FundsSplitter.Core.Transactions
 module ProcessingLogic = 
     open FundsSplitter.Core.Transactions.Types
     
-    let addTransaction chat tx = 
-        { chat with Transactions = tx :: chat.Transactions }
-
-    let editTransaction chat (tx: Tx) = 
-        let replace (tx': Tx) = 
-            if tx'.Id = tx.Id then tx else tx'
-        { chat with Transactions = chat.Transactions |> List.map replace }
-
-    let getPaymentsSum chat = 
-        chat.Transactions 
+    let getPaymentsSum transactions = 
+        transactions
         |> List.filter (fun tx -> tx.Type = Payment)
         |> List.sumBy (fun tx -> tx.Amount)
-
-    let groupTotalUserPayments chat = 
-        let getUserById userId = 
-            chat.KnownUsers |> List.find (fun u -> u.Id = userId)
-        let totalUserPayments = 
-            chat.Transactions 
-            |> List.groupBy (fun tx -> tx.User.Id)
-            |> List.map (fun (uId, txs) -> (uId, txs |> List.sumBy (fun tx -> tx.Amount)))
-
-        let getUserPayment userId = 
-            match totalUserPayments |> List.tryFind (fun (uId, _) -> uId = userId) with
-            | Some (_, amount) -> amount
-            | None -> 0.0M
-
-        chat.KnownUsers
-        |> List.map (fun u -> (u, getUserPayment u.Id))
 
     type DebtsMatrix = 
         {
@@ -38,15 +14,37 @@ module ProcessingLogic =
             Receivers: (User*decimal) list
         }
 
-    let createInitialDebtsMatrix chat = 
-        let idealDebt = getPaymentsSum chat / (decimal(chat.TotalUsersAmount))
-        let userTotalPayments = groupTotalUserPayments chat 
+    let calculateTransactionDebts (tx: Tx) = 
+        let idealDebt = tx.Amount / decimal(tx.SplittingSubset.Length)
+        tx.SplittingSubset
+        |> List.map (fun u -> 
+            if u.Id = tx.User.Id 
+            then (u, tx.Amount - idealDebt) 
+            else (u, 0.0m - idealDebt))
+
+    let createInitialDebtsMatrix chat =         
+        let getUserDebtAmount (txDebts: (User * decimal) list) uId = 
+            match txDebts |> List.tryFind (fun (u, _) -> u.Id = uId) with
+            | None -> 0.0m
+            | Some (_, a) -> a
+
+        let rec calculateUserDebts (matrix: (User * decimal) list) (txsDebts: (User * decimal) list list) = 
+            match txsDebts with
+            | [] -> matrix
+            | txDebts :: otherDebts ->
+                let m' = 
+                    matrix 
+                    |> List.map (fun (u, a) -> (u, a + (getUserDebtAmount txDebts u.Id)))
+                calculateUserDebts m' otherDebts
+
         let userDebts = 
-            userTotalPayments 
-            |> List.map (fun (u, sum) -> (u, sum - idealDebt))
+            chat.Transactions 
+            |> List.map calculateTransactionDebts
+            |> calculateUserDebts (chat.KnownUsers |> List.map (fun u -> (u, 0.0m)))
+
         {
-            Givers = userDebts |> List.filter (fun (_, amount) -> amount > 0.0M)
-            Receivers = userDebts |> List.filter (fun (_, amount) -> amount < 0.0M)
+            Givers = userDebts |> List.filter (fun (_, amount) -> amount > 0.0m)
+            Receivers = userDebts |> List.filter (fun (_, amount) -> amount < 0.0m)
         }
 
     let getDebts debtsMatrix = 
@@ -56,16 +54,16 @@ module ProcessingLogic =
         let rec getDebtsInner matrix transactions = 
             // printfn "==============START-OF-ITERATION================"
             if 
-                matrix.Givers |> List.sumBy snd = 0.0M 
-                && matrix.Receivers |> List.sumBy snd = 0.0M then
+                System.Math.Round(matrix.Givers |> List.sumBy snd, 2) = 0.0m 
+                && System.Math.Round(matrix.Receivers |> List.sumBy snd, 2) = 0.0m then
                 transactions
             else
                 let maxGiver = matrix.Givers |> List.maxBy snd
                 let minReceiver = matrix.Receivers |> List.minBy snd
 
                 let delta = (maxGiver |> snd) + (minReceiver |> snd)
-                let newGiverAmount = System.Math.Max(delta, 0.0M)
-                let newReceiverAmount = System.Math.Min(delta, 0.0M)
+                let newGiverAmount = System.Math.Max(delta, 0.0m)
+                let newReceiverAmount = System.Math.Min(delta, 0.0m)
 
                 // printfn "Participants: %A %A" maxGiver minReceiver
 
@@ -79,7 +77,7 @@ module ProcessingLogic =
 
                 // printfn "New matrix: %A" newMatrix
 
-                let paymentAmount = System.Math.Min(maxGiver |> snd, -1.0M * (minReceiver |> snd))
+                let paymentAmount = System.Math.Min(maxGiver |> snd, -1.0m * (minReceiver |> snd))
                 let newTransaction = {
                     From = minReceiver |> fst
                     To = maxGiver |> fst

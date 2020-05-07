@@ -36,7 +36,6 @@ module Types =
 
             Type: TxType
             Amount: decimal
-            /// **CURRENTLY THIS FIELD IS IGNORED IN COMPUTATIONS**
             SplittingSubset: User list
         }
 
@@ -45,7 +44,6 @@ module Types =
             Id: int
             Title: string
 
-            TotalUsersAmount: int
             KnownUsers: User list
 
             Transactions: Tx list
