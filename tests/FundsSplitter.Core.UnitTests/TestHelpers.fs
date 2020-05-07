@@ -28,6 +28,13 @@ module TestHelpers =
         }
     ]
 
-    let createTx user txType amount = 
+    let createTx user txType amount splittingSubset = 
         let emptyMsg = { Id = 1; Text = String.Empty }
-        { Id = Guid.NewGuid(); User = user; Message = emptyMsg; Type = txType; Amount = amount; SplittingSubset = [] }
+        { 
+            Id = Guid.NewGuid()
+            User = user
+            Message = emptyMsg
+            Type = txType
+            Amount = amount 
+            SplittingSubset = splittingSubset 
+        }

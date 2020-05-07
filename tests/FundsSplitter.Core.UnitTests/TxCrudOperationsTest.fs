@@ -20,7 +20,7 @@ module TxCrudOperationsTests =
 
             Transactions = []
         }
-        let tx = createTx users.[0] Payment 10.0M
+        let tx = createTx users.[0] Payment 10.0m []
 
         let chat' = addTransaction chat tx
 
@@ -37,8 +37,8 @@ module TxCrudOperationsTests =
 
             Transactions = []
         }
-        let tx = createTx users.[0] Payment 10.0M
-        let tx2 = createTx users.[0] Payment 10.0M
+        let tx = createTx users.[0] Payment 10.0m []
+        let tx2 = createTx users.[0] Payment 10.0m []
 
         let chat' = addTransaction chat tx
         let chat'' = addTransaction chat' tx2

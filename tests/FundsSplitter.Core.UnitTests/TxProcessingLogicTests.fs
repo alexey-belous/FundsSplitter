@@ -11,66 +11,100 @@ module TxProcessingLogicTests =
     open FundsSplitter.Core.Transactions.ProcessingLogic
 
     [<Fact>]
-    let ``Should compute correct sum of all payments`` () =
-        let me = users.[0]
+    let ``Should calculate transaction debts for tx with two users `` () = 
+        let u1 = users.[0]
+        let u2 = users.[1]
+        let splittingSubset = [u1; u2]
+        let tx = createTx u1 Payment 100.0m splittingSubset
+
+        let debts = calculateTransactionDebts tx
+
+        let expectedDebts = [
+            ({Id = 1; Name = "user1";}, 50.0m)
+            ({Id = 2; Name = "user2";}, -50.0m)]
+
+        expectedDebts |> should equal debts
+
+    [<Fact>]
+    let ``Should calculate debts matrix for chat with two users`` () =
+        let u1 = users.[0]
+        let u2 = users.[1]
+        let splittingSubset = [u1; u2]
+
         let txs = [
-            createTx me Payment 10.0M
-            createTx me Payment 20.0M
-            createTx me SettlingUp 10.0M
+            createTx u1 Payment 50.0m splittingSubset
+            createTx u1 Payment 50.0m splittingSubset
         ]
         let chat = {
             Id = 1
             Title = "chat1"
 
-            KnownUsers = []
+            KnownUsers = [u1; u2]
 
             Transactions = txs
         }
 
-        let paymentsSum = getPaymentsSum chat
+        let matrix = createInitialDebtsMatrix chat
 
-        Assert.Equal(30.0M, paymentsSum)
+        let expectedMatrix = {
+            Givers = [(u1, 50.0M)];
+            Receivers = [(u2, -50.0M)];}
+
+        expectedMatrix |> should equal matrix
+
 
     [<Fact>]
-    let ``Should compute total payments of each user`` () =
+    let ``Should compute debts resolving transaction for two users`` () =
         let u1 = users.[0]
         let u2 = users.[1]
-        let u3 = users.[2]
-        let txs = [
-            createTx u1 Payment 10.0M
-            createTx u1 Payment 10.0M
-            
-            createTx u2 Payment 20.0M
-            createTx u2 Payment 20.0M
-
-            createTx u3 Payment 30.0M
-            createTx u3 Payment 30.0M
-        ]
-        let chat = {
-            Id = 1
-            Title = "chat1"
-
-            KnownUsers = [u1; u2; u3]
-            Transactions = txs
+        
+        let matrix = {
+            Givers = [(u1, 10.0m)]
+            Receivers = [(u2, -10.0m)]
         }
 
-        let userPayments = groupTotalUserPayments chat
+        let debts = getDebts matrix
 
-        Assert.Equal(20.0M, userPayments.[0] |> snd)
-        Assert.Equal(40.0M, userPayments.[1] |> snd)
-        Assert.Equal(60.0M, userPayments.[2] |> snd)
+        Assert.Equal(u2, debts.[0].From)
+        Assert.Equal(u1, debts.[0].To)
+        Assert.Equal(10.0m, debts.[0].Amount)
 
     [<Fact>]
-    let ``Should create appropriate debts matrix for particular chat`` () =
+    /// See ./docs/debts-resolving-transaction-5-users.md for more info about assetions
+    let ``Should compute debts resolving transaction for five users`` () =
         let u1 = users.[0]
         let u2 = users.[1]
         let u3 = users.[2]
+        let u4 = users.[3]
+        let u5 = users.[4]
+        
+        let matrix = {
+            Givers = [(u1, 228.0m); (u3, 178.0m);]
+            Receivers = [(u2, -72.0m); (u4, -172.0m); (u5, -162.0m)]
+        }
+
+        let debts = getDebts matrix
+
+        let expectedDebts = 
+            [
+                {From = {Id = 2; Name = "user2";}; To = {Id = 3; Name = "user3";}; Amount = 16.00M;}; 
+                {From = {Id = 2; Name = "user2";}; To = {Id = 1; Name = "user1";}; Amount = 56.0m;}; 
+                {From = {Id = 5; Name = "user5";}; To = {Id = 3; Name = "user3";}; Amount = 162.00M;};
+                {From = {Id = 4; Name = "user4";}; To = {Id = 1; Name = "user1";}; Amount = 172.00M;}]
+
+    
+        expectedDebts |> should equal debts
+
+    [<Fact>]
+    let ``Should calculate debts matrix for three users with different splitting rules`` () =
+        let u1 = users.[0]
+        let u2 = users.[1]
+        let u3 = users.[2]
+        
         let txs = [
-            createTx u1 Payment 10.0M
-            createTx u1 Payment 10.0M
-            
-            createTx u2 Payment 20.0M
-            createTx u2 Payment 20.0M
+            createTx u1 Payment 100.0m [u1; u2; u3]
+            createTx u2 Payment 100.0m [u1; u2; u3]
+            createTx u3 Payment 100.0m [u1; u3]
         ]
         let chat = {
             Id = 1
@@ -83,49 +117,41 @@ module TxProcessingLogicTests =
 
         let matrix = createInitialDebtsMatrix chat
 
-        Assert.Equal(20.0M, matrix.Givers.[0] |> snd)
-        Assert.Equal(-20.0M, matrix.Receivers.[0] |> snd)
-
-
-    [<Fact>]
-    let ``Should compute debts resolving transaction for two users`` () =
-        let u1 = users.[0]
-        let u2 = users.[1]
+        let expectedMatrix = {
+            Givers = [(u2, 33.333333333333333333333333334M)];
+            Receivers = [
+                (u1, -16.666666666666666666666666666M);
+                (u3, -16.666666666666666666666666666M)];}
         
-        let matrix = {
-            Givers = [(u1, 10.0M)]
-            Receivers = [(u2, -10.0M)]
-        }
-
-        let debts = getDebts matrix
-
-        Assert.Equal(u2, debts.[0].From)
-        Assert.Equal(u1, debts.[0].To)
-        Assert.Equal(10.0M, debts.[0].Amount)
+        expectedMatrix |> should equal matrix
 
     [<Fact>]
-    /// See ./docs/debts-resolving-transaction-5-users.md for more info about assetions
-    let ``Should compute debts resolving transaction for five users`` () =
+    let ``Should compute debts resolving transaction for tree users with different splitting rules`` () =
         let u1 = users.[0]
         let u2 = users.[1]
         let u3 = users.[2]
-        let u4 = users.[3]
-        let u5 = users.[4]
         
-        let matrix = {
-            Givers = [(u1, 228.0M); (u3, 178.0M);]
-            Receivers = [(u2, -72.0M); (u4, -172.0M); (u5, -162.0M)]
+        let txs = [
+            createTx u1 Payment 100.0m [u1; u2; u3]
+            createTx u2 Payment 100.0m [u1; u2; u3]
+            createTx u3 Payment 100.0m [u1; u3]
+        ]
+        let chat = {
+            Id = 1
+            Title = "chat1"
+
+            KnownUsers = [u1; u2; u3]
+
+            Transactions = txs
         }
+
+        let matrix = createInitialDebtsMatrix chat
 
         let debts = getDebts matrix
 
-        let expectedDebts = 
-            [
-                {From = {Id = 2; Name = "user2";}; To = {Id = 3; Name = "user3";}; Amount = 16.00M;}; 
-                {From = {Id = 2; Name = "user2";}; To = {Id = 1; Name = "user1";}; Amount = 56.0M;}; 
-                {From = {Id = 5; Name = "user5";}; To = {Id = 3; Name = "user3";}; Amount = 162.00M;};
-                {From = {Id = 4; Name = "user4";}; To = {Id = 1; Name = "user1";}; Amount = 172.00M;}]
-
+        let expectedDebts = [
+            { From = u3; To = u2; Amount = 16.666666666666666666666666666M; };
+            { From = u1; To = u2; Amount = 16.666666666666666666666666666M; } ]
     
         expectedDebts |> should equal debts
 
