@@ -3,14 +3,6 @@ namespace FundsSplitter.Core.Transactions
 module ProcessingLogic = 
     open FundsSplitter.Core.Transactions.Types
     
-    let addTransaction chat tx = 
-        { chat with Transactions = tx :: chat.Transactions }
-
-    let editTransaction chat (tx: Tx) = 
-        let replace (tx': Tx) = 
-            if tx'.Id = tx.Id then tx else tx'
-        { chat with Transactions = chat.Transactions |> List.map replace }
-
     let getPaymentsSum chat = 
         chat.Transactions 
         |> List.filter (fun tx -> tx.Type = Payment)
@@ -39,7 +31,7 @@ module ProcessingLogic =
         }
 
     let createInitialDebtsMatrix chat = 
-        let idealDebt = getPaymentsSum chat / (decimal(chat.TotalUsersAmount))
+        let idealDebt = getPaymentsSum chat / (decimal(chat.KnownUsers.Length))
         let userTotalPayments = groupTotalUserPayments chat 
         let userDebts = 
             userTotalPayments 

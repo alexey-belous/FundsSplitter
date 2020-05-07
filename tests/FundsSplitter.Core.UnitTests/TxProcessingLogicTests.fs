@@ -5,35 +5,10 @@ module TxProcessingLogicTests =
     open FsUnit
     open Xunit
 
+    open TestHelpers
+
     open FundsSplitter.Core.Transactions.Types
     open FundsSplitter.Core.Transactions.ProcessingLogic
-
-    let users = [
-        {
-            Id = 1
-            Name = "user1"
-        }
-        {
-            Id = 2
-            Name = "user2"
-        }
-        {
-            Id = 3
-            Name = "user3"
-        }
-        {
-            Id = 4
-            Name = "user4"
-        }
-        {
-            Id = 5
-            Name = "user5"
-        }
-    ]
-
-    let createTx user txType amount = 
-        let emptyMsg = { Id = 1; Text = String.Empty }
-        { Id = Guid.NewGuid(); User = user; Message = emptyMsg; Type = txType; Amount = amount; SplittingSubset = [] }
 
     [<Fact>]
     let ``Should compute correct sum of all payments`` () =
@@ -47,7 +22,6 @@ module TxProcessingLogicTests =
             Id = 1
             Title = "chat1"
 
-            TotalUsersAmount = 2
             KnownUsers = []
 
             Transactions = txs
@@ -76,9 +50,7 @@ module TxProcessingLogicTests =
             Id = 1
             Title = "chat1"
 
-            TotalUsersAmount = 3
             KnownUsers = [u1; u2; u3]
-
             Transactions = txs
         }
 
@@ -104,7 +76,6 @@ module TxProcessingLogicTests =
             Id = 1
             Title = "chat1"
 
-            TotalUsersAmount = 3
             KnownUsers = [u1; u2; u3]
 
             Transactions = txs

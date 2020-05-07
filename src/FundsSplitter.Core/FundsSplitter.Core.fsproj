@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <Compile Include="Transactions/Types.fs" />
+    <Compile Include="Transactions/CrudOperations.fs" />
     <Compile Include="Transactions/ProcessingLogic.fs" />
   </ItemGroup>
 
