@@ -2,11 +2,6 @@ namespace FundsSplitter.Core.Transactions
 
 module ProcessingLogic = 
     open FundsSplitter.Core.Transactions.Types
-    
-    let getPaymentsSum transactions = 
-        transactions
-        |> List.filter (fun tx -> tx.Type = Payment)
-        |> List.sumBy (fun tx -> tx.Amount)
 
     type DebtsMatrix = 
         {
@@ -22,12 +17,17 @@ module ProcessingLogic =
             then (u, tx.Amount - idealDebt) 
             else (u, 0.0m - idealDebt))
 
-    let createInitialDebtsMatrix chat =         
-        let getUserDebtAmount (txDebts: (User * decimal) list) uId = 
-            match txDebts |> List.tryFind (fun (u, _) -> u.Id = uId) with
-            | None -> 0.0m
-            | Some (_, a) -> a
+    let calculateUserSettlingUps txs = 
+        txs
+        |> List.filter (fun tx -> tx.Type = SettlingUp)
+        |> List.groupBy (fun tx -> tx.User.Id)
 
+    let getUserDebtAmount (txDebts: (User * decimal) list) uId = 
+        match txDebts |> List.tryFind (fun (u, _) -> u.Id = uId) with
+        | None -> 0.0m
+        | Some (_, a) -> a
+
+    let createInitialDebtsMatrix chat =         
         let rec calculateUserDebts (matrix: (User * decimal) list) (txsDebts: (User * decimal) list list) = 
             match txsDebts with
             | [] -> matrix
@@ -39,6 +39,7 @@ module ProcessingLogic =
 
         let userDebts = 
             chat.Transactions 
+            |> List.filter (fun tx -> tx.Type = Payment)
             |> List.map calculateTransactionDebts
             |> calculateUserDebts (chat.KnownUsers |> List.map (fun u -> (u, 0.0m)))
 
@@ -90,4 +91,19 @@ module ProcessingLogic =
 
         getDebtsInner debtsMatrix []
 
+    let addSttlingUpsToDebts chat debts =
+        let userSettlingsUps = 
+            chat.Transactions
+            |> calculateUserSettlingUps
+
+        debts 
+        |> List.map (fun d -> 
+            match userSettlingsUps |> List.tryFind (fun (uId, _) -> uId = d.From.Id) with
+            | Some (uId, sups) -> 
+                let sups' = 
+                    sups
+                    |> List.map (fun s -> s.SplittingSubset.[0], s.Amount)
+                let amount = getUserDebtAmount sups' (d.To.Id)
+                { d with Amount = d.Amount - amount }
+            | None -> d )
     

@@ -128,7 +128,7 @@ module TxProcessingLogicTests =
 
     [<Fact>]
     /// See ./docs/unit-tests-task-solutions.md for more info about assetions#Task 2
-    let ``Should compute debts resolving transaction for tree users with different splitting rules`` () =
+    let ``Should compute debts resolving transaction for three users with different splitting rules`` () =
         let u1 = users.[0]
         let u2 = users.[1]
         let u3 = users.[2]
@@ -157,3 +157,31 @@ module TxProcessingLogicTests =
     
         expectedDebts |> should equal debts
 
+    [<Fact>]
+    let ``Should compute debts resolving transaction for two users with settling ups`` () =
+        let u1 = users.[0]
+        let u2 = users.[1]
+        
+        let txs = [
+            createTx u1 Payment 100.0m [u1; u2]
+
+            createTx u2 SettlingUp 25.0m [u1]
+        ]
+        let chat = {
+            Id = 1
+            Title = "chat1"
+
+            KnownUsers = [u1; u2;]
+
+            Transactions = txs
+        }
+
+        let matrix = createInitialDebtsMatrix chat
+
+        let debts = getDebts matrix
+                    |> addSttlingUpsToDebts chat
+
+        let expectedDebts = [
+            { From = u2; To = u1; Amount = 25.0m; } ]
+    
+        expectedDebts |> should equal debts
