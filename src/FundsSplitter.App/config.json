@@ -6,5 +6,8 @@
     "telegramBot": {
         "token": "BOT_TOKEN",
         "botUrl": "https://hostname/api/new-update"
+    },
+    "storage": {
+        "connectionString": "mongodb://fundssplitter:fundssplitter@127.0.0.1:27017/fundssplitter"
     }
 }

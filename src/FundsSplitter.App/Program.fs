@@ -14,18 +14,18 @@ module Entry =
 
     type Config = JsonProvider<"./config.json">
 
-    let updatesHandler botConfig = 
+    let updatesHandler botConfig storage = 
         fun (x: HttpContext) -> async {
             let! res = 
                 x.request.rawForm
                 |> System.Text.Encoding.UTF8.GetString
-                |> Bot.UpdatesHandler.handleUpdates botConfig
+                |> Bot.UpdatesHandler.handleUpdates botConfig storage
             return! Successful.OK res x
         }
 
-    let routes botConfig = 
+    let routes botConfig storage = 
         choose [
-            POST >=> choose [path "/api/new-update" >=> updatesHandler botConfig ]
+            POST >=> choose [path "/api/new-update" >=> updatesHandler botConfig storage ]
             Suave.RequestErrors.NOT_FOUND "Resource you're looking for is not exists"
         ]
 
@@ -45,13 +45,14 @@ module Entry =
         | Error e -> failwith "Error during bot setup. Shutting down..."
         | _ ->
 
+        let storage = Storage.initializeStorage config.Storage.ConnectionString
         let cts = new CancellationTokenSource()
         let listening, server = 
             startWebServerAsync
                 { defaultConfig with 
                     cancellationToken = cts.Token
                     bindings = [HttpBinding.createSimple HTTP (config.Binding.Ip) (config.Binding.Port) ] } 
-                (routes botConfig)
+                (routes botConfig storage)
 
         Async.Start(server, cts.Token)
 

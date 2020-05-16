@@ -11,7 +11,7 @@ module UpdatesHandler =
     open Telegram.Bot.Types
     open Telegram.Bot.Types
 
-    let handleUpdates botConfig body = async {
+    let handleUpdates botConfig storage body = async {
             let cts = new CancellationTokenSource()
             let client = new TelegramBotClient(botConfig.Token, new System.Net.Http.HttpClient())
             let update = Compact.deserialize<Update> body

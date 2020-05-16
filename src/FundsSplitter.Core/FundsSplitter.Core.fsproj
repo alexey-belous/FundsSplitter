@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <Compile Include="Logging.fs" />
+    <Compile Include="Storage.fs" />
     <Compile Include="Transactions/Types.fs" />
     <Compile Include="Transactions/CrudOperations.fs" />
     <Compile Include="Transactions/ProcessingLogic.fs" />
@@ -17,6 +18,7 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Data" Version="3.3.3" />
     <PackageReference Include="Microsoft.FSharpLu.Json" Version="0.11.6" />
+    <PackageReference Include="mongocsharpdriver" Version="2.10.4" />
     <PackageReference Include="Suave" Version="2.5.6" />
     <PackageReference Include="Telegram.Bot" Version="15.5.1" />
   </ItemGroup>
