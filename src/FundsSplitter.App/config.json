@@ -1,0 +1,10 @@
+{
+    "binding": {
+        "ip": "0.0.0.0",
+        "port": 8443
+    },
+    "telegramBot": {
+        "token": "BOT_TOKEN",
+        "botUrl": "https://hostname/api/new-update"
+    }
+}
