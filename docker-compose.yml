@@ -1,0 +1,17 @@
+version: "3"
+services:
+  storage:
+    image: alexeybelous/mongo:1.0
+    restart: always
+    environment:
+      - MONGODB_ADMIN_USER=${MONGODB_ADMIN_USER}
+      - AUTH=yes
+      - MONGODB_ADMIN_PASS=${MONGODB_ADMIN_PASS}
+      - MONGODB_APPLICATION_DATABASE=fundssplitter
+      - MONGODB_APPLICATION_USER=fundssplitter
+      - MONGODB_APPLICATION_PASS=${MONGODB_ADMIN_PASS}
+    container_name: storage
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - ./mongodb_data:/data
