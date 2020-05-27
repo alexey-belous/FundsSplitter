@@ -9,7 +9,30 @@ module UpdatesHandler =
     open Microsoft.FSharpLu.Json
     open Telegram.Bot
     open Telegram.Bot.Types
-    open Telegram.Bot.Types
+    open Telegram.Bot.Types.Enums
+
+    let handleCommand cmdName handler = 
+        { CmdName = cmdName; Handler = handler}
+
+    let extractCmd (message: Message) = 
+        match message.Entities |> Array.tryFind (fun e -> e.Type = MessageEntityType.BotCommand) with
+        | Some cmd -> 
+            message.Text.Substring(cmd.Offset, cmd.Length) |> Some
+        | None -> None
+
+    let routeCommands botContext (update: Update) routes = async {
+        let msg = update.Message
+        if msg <> null && msg.Entities <> null then 
+            let handler = 
+                update.Message 
+                |> extractCmd 
+                |> Option.bind (fun cmd' -> routes |> List.tryFind (fun r -> r.CmdName = cmd'))
+            match handler with
+            | Some h -> do! h.Handler botContext msg
+            | _ -> return ()
+        else
+            return ()
+    }
 
     let handleUpdates botConfig storage body = async {
             let cts = new CancellationTokenSource()
@@ -17,13 +40,19 @@ module UpdatesHandler =
             let update = Compact.deserialize<Update> body
             printfn "Request body: %A" (update |> Compact.serialize)
 
-            if update.Message <> null 
-            then
-                let! _ = 
-                    client.SendTextMessageAsync(new ChatId(update.Message.Chat.Id), update.Message.Text, Enums.ParseMode.Default, true, false, update.Message.MessageId, null, cts.Token)
-                    |> Async.AwaitTask
-                return String.Empty
-            else
-                return String.Empty
+            let routes = [
+                Handlers.HelpHandler.handler
+            ]
+
+            let context = 
+                {
+                    CancellationToken = cts.Token
+                    BotClient = client
+                    Storage = storage
+                }
+            do! routeCommands context update routes
+
+            return String.Empty
+
         }
         

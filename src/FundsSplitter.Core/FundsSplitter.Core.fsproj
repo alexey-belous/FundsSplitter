@@ -11,6 +11,7 @@
     <Compile Include="Transactions/CrudOperations.fs" />
     <Compile Include="Transactions/ProcessingLogic.fs" />
     <Compile Include="Bot/Types.fs" />
+    <Compile Include="Bot/Handlers/HelpHandler.fs" />
     <Compile Include="Bot/Lifecycle.fs" />
     <Compile Include="Bot/UpdatesHandler.fs" />
   </ItemGroup>
