@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="JsonSerialization.fs" />
+    <Compile Include="AsyncResult.fs" />
     <Compile Include="Logging.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="Transactions/Types.fs" />
@@ -12,6 +14,7 @@
     <Compile Include="Transactions/ProcessingLogic.fs" />
     <Compile Include="Bot/Types.fs" />
     <Compile Include="Bot/Handlers/HelpHandler.fs" />
+    <Compile Include="Bot/Handlers/JoinHandler.fs" />
     <Compile Include="Bot/Lifecycle.fs" />
     <Compile Include="Bot/UpdatesHandler.fs" />
   </ItemGroup>

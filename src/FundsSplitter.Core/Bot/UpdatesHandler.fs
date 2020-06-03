@@ -37,11 +37,12 @@ module UpdatesHandler =
     let handleUpdates botConfig storage body = async {
             let cts = new CancellationTokenSource()
             let client = new TelegramBotClient(botConfig.Token, new System.Net.Http.HttpClient())
-            let update = Compact.deserialize<Update> body
+            let update = Newtonsoft.Json.JsonConvert.DeserializeObject<Update>(body)
             printfn "Request body: %A" (update |> Compact.serialize)
 
             let routes = [
                 Handlers.HelpHandler.handler
+                Handlers.JoinHandler.handler
             ]
 
             let context = 

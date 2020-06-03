@@ -41,7 +41,7 @@ module Types =
 
     type Chat = 
         {
-            Id: int
+            Id: int64
             Title: string
 
             KnownUsers: User list
