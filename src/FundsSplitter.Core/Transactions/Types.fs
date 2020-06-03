@@ -6,6 +6,7 @@ module Types =
     type User = 
         {
             Id: int
+            Username: string
             Name: string
         }
 

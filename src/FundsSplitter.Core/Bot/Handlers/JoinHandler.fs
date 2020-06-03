@@ -9,14 +9,18 @@ module JoinHandler =
     open FundsSplitter.Core.Storage
     open FundsSplitter.Core.Transactions.CrudOperations
     open FundsSplitter.Core.Bot.Types
+    open FundsSplitter.Core.Bot.Message
 
     open Telegram.Bot
     open Telegram.Bot.Types
     open Telegram.Bot.Types.Enums
 
+    let invalidGroupTypeError = "The /join command can be executed only inside a group."
+    let successfullJoinMessage = "You successfully joined to the splitting group."
+
     let validateMessage (msg: Message) = 
         if msg.Chat.Type <> ChatType.Group then
-            Error "/join command can be executed only inside a group."
+            Error invalidGroupTypeError
         else
         Ok msg
 
@@ -38,10 +42,12 @@ module JoinHandler =
 
             let processCommand _ = async {
                     let chats = db.GetCollection(Collections.Chats)
+
                     let user = 
                         {
                             Id = msg.From.Id
-                            Name = sprintf "%s %s (%s)" msg.From.FirstName msg.From.LastName msg.From.Username 
+                            Username = msg.From.Username 
+                            Name = sprintf "%s %s" msg.From.FirstName msg.From.LastName 
                         } : Transactions.Types.User
 
                     let newChat = 
@@ -57,7 +63,7 @@ module JoinHandler =
                         |> Async.map (upsertUser user)
                         |> Async.map (upsertChat cts chats)
 
-                    return Ok "You successfully joined to the Funds Splitter group."
+                    return Ok successfullJoinMessage
                 }
 
             let! res = 

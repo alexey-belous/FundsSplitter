@@ -5,18 +5,13 @@ module UpdatesHandler =
     open System.Threading
 
     open FundsSplitter.Core.Bot.Types
+    open FundsSplitter.Core.Bot.Message
     open FundsSplitter.Core.Bot.Handlers
 
     open Microsoft.FSharpLu.Json
     open Telegram.Bot
     open Telegram.Bot.Types
     open Telegram.Bot.Types.Enums
-
-    let extractCmd (message: Message) = 
-        match message.Entities |> Array.tryFind (fun e -> e.Type = MessageEntityType.BotCommand) with
-        | Some cmd -> 
-            message.Text.Substring(cmd.Offset, cmd.Length) |> Some
-        | None -> None
 
     let choose (handlers: UpdateHandler seq) context message = 
         handlers
