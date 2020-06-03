@@ -8,22 +8,27 @@ module TestHelpers =
     let users = [
         {
             Id = 1
+            Username="user1";
             Name = "user1"
         }
         {
             Id = 2
+            Username="user2";
             Name = "user2"
         }
         {
             Id = 3
+            Username="user3";
             Name = "user3"
         }
         {
             Id = 4
+            Username="user4";
             Name = "user4"
         }
         {
             Id = 5
+            Username="user5";
             Name = "user5"
         }
     ]
