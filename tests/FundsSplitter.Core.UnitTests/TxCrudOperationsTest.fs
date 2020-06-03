@@ -13,7 +13,7 @@ module TxCrudOperationsTests =
     [<Fact>]
     let ``Add tx to the chat and tx author to the known users`` () =
         let chat = {
-            Id = 1
+            Id = 1L
             Title = "chat1"
 
             KnownUsers = []
@@ -30,7 +30,7 @@ module TxCrudOperationsTests =
     [<Fact>]
     let ``Add tx to the chat and tx author to the known users without duplicates`` () =
         let chat = {
-            Id = 1
+            Id = 1L
             Title = "chat1"
 
             KnownUsers = []

@@ -20,8 +20,8 @@ module TxProcessingLogicTests =
         let debts = calculateTransactionDebts tx
 
         let expectedDebts = [
-            ({Id = 1; Name = "user1";}, 50.0m)
-            ({Id = 2; Name = "user2";}, -50.0m)]
+            ({Id = 1; Username="user1"; Name = "user1";}, 50.0m)
+            ({Id = 2; Username="user2"; Name = "user2";}, -50.0m)]
 
         expectedDebts |> should equal debts
 
@@ -36,7 +36,7 @@ module TxProcessingLogicTests =
             createTx u1 Payment 50.0m splittingSubset
         ]
         let chat = {
-            Id = 1
+            Id = 1L
             Title = "chat1"
 
             KnownUsers = [u1; u2]
@@ -87,10 +87,10 @@ module TxProcessingLogicTests =
 
         let expectedDebts = 
             [
-                {From = {Id = 2; Name = "user2";}; To = {Id = 3; Name = "user3";}; Amount = 16.00M;}; 
-                {From = {Id = 2; Name = "user2";}; To = {Id = 1; Name = "user1";}; Amount = 56.0m;}; 
-                {From = {Id = 5; Name = "user5";}; To = {Id = 3; Name = "user3";}; Amount = 162.00M;};
-                {From = {Id = 4; Name = "user4";}; To = {Id = 1; Name = "user1";}; Amount = 172.00M;}]
+                {From = {Id = 2; Name = "user2"; Username="user2";}; To = {Id = 3; Name = "user3"; Username="user3";}; Amount = 16.00M;}; 
+                {From = {Id = 2; Name = "user2"; Username="user2";}; To = {Id = 1; Name = "user1"; Username="user1";}; Amount = 56.0m;}; 
+                {From = {Id = 5; Name = "user5"; Username="user5";}; To = {Id = 3; Name = "user3"; Username="user3";}; Amount = 162.00M;};
+                {From = {Id = 4; Name = "user4"; Username="user4";}; To = {Id = 1; Name = "user1"; Username="user1";}; Amount = 172.00M;}]
 
     
         expectedDebts |> should equal debts
@@ -108,7 +108,7 @@ module TxProcessingLogicTests =
             createTx u3 Payment 100.0m [u1; u3]
         ]
         let chat = {
-            Id = 1
+            Id = 1L
             Title = "chat1"
 
             KnownUsers = [u1; u2; u3]
@@ -139,7 +139,7 @@ module TxProcessingLogicTests =
             createTx u3 Payment 100.0m [u1; u3]
         ]
         let chat = {
-            Id = 1
+            Id = 1L
             Title = "chat1"
 
             KnownUsers = [u1; u2; u3]
@@ -168,7 +168,7 @@ module TxProcessingLogicTests =
             createTx u2 SettlingUp 25.0m [u1]
         ]
         let chat = {
-            Id = 1
+            Id = 1L
             Title = "chat1"
 
             KnownUsers = [u1; u2;]
