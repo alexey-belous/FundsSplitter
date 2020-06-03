@@ -32,6 +32,7 @@ module CrudOperations =
         let serialized = chat |> Serializer.serialize |> BsonDocument.Parse
         chats.ReplaceOne(filter, serialized, replaceOptions, cts)
         |> ignore
+        chat
 
     let tryFindChat (chats: IMongoCollection<BsonDocument>) cts chatId = async {
         let filter = createChatFilter chatId

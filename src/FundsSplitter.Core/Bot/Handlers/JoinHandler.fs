@@ -16,7 +16,13 @@ module JoinHandler =
     open Telegram.Bot.Types.Enums
 
     let invalidGroupTypeError = "The /join command can be executed only inside a group."
-    let successfullJoinMessage = "You successfully joined to the splitting group."
+    let successfullJoinMessage = 
+        sprintf """
+You successfully joined to the splitting group.
+
+Group contain following members:
+%s
+"""
 
     let validateMessage (msg: Message) = 
         if msg.Chat.Type <> ChatType.Group then
@@ -32,7 +38,7 @@ module JoinHandler =
 
         fun () -> async {
             let answer text = 
-                client.SendTextMessageAsync(new ChatId(msg.Chat.Id), text, Enums.ParseMode.Markdown, true, false, msg.MessageId, null, cts)
+                client.SendTextMessageAsync(new ChatId(msg.Chat.Id), text, Enums.ParseMode.Default, true, false, msg.MessageId, null, cts)
                 |> Async.AwaitTask
 
             let sendAnswer res = 
@@ -58,12 +64,21 @@ module JoinHandler =
                                 Transactions = []
                             } : Transactions.Types.Chat
 
-                    do! tryFindChat chats cts msg.Chat.Id
+                    let! savedChat =  
+                        tryFindChat chats cts msg.Chat.Id
                         |> Async.map (Option.defaultValue newChat)
                         |> Async.map (upsertUser user)
                         |> Async.map (upsertChat cts chats)
 
-                    return Ok successfullJoinMessage
+                    let responseMsg = 
+                        savedChat.KnownUsers
+                        |> List.map (fun u -> sprintf "- %s (@%s)" u.Name u.Username)
+                        |> String.concat "\n"
+                        |> successfullJoinMessage
+
+                    printfn "%s" responseMsg
+
+                    return Ok responseMsg
                 }
 
             let! res = 
