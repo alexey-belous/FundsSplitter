@@ -16,74 +16,55 @@ module JoinHandler =
 
     let validateMessage (msg: Message) = 
         if msg.Chat.Type <> ChatType.Group then
-            Error "`/join` command can be executed only inside a group."
+            Error "/join command can be executed only inside a group."
         else
         Ok msg
 
-    let handlerFunction botContext (msg: Message) = async {
+    let handlerFunction botContext (update: Update) = 
+        let msg = update.Message
         let client = botContext.BotClient
         let cts = botContext.CancellationToken
         let db = botContext.Storage.Database
 
-        let answer text = 
-            client.SendTextMessageAsync(new ChatId(msg.Chat.Id), text, Enums.ParseMode.Default, true, false, msg.MessageId, null, cts)
-            |> Async.AwaitTask
+        fun () -> async {
+            let answer text = 
+                client.SendTextMessageAsync(new ChatId(msg.Chat.Id), text, Enums.ParseMode.Markdown, true, false, msg.MessageId, null, cts)
+                |> Async.AwaitTask
 
-        let sendAnswer res = 
-            match res with
-            | Ok r -> answer r
-            | Error e -> answer e
+            let sendAnswer res = 
+                match res with
+                | Ok r -> answer r
+                | Error e -> answer e
 
-        let processCommand _ = async {
-                let chats = db.GetCollection(Collections.Chats)
-                let filter = BsonDocumentFilterDefinition(BsonDocument.Parse(sprintf """{ "id": %i}""" msg.Chat.Id))
-                let user = 
-                    {
-                        Id = msg.From.Id
-                        Name = sprintf "%s %s (%s)" msg.From.FirstName msg.From.LastName msg.From.Username 
-                    } : Transactions.Types.User
-
-                let upsertChat (chat: Transactions.Types.Chat) = 
-                    let replaceOptions = ReplaceOptions()
-                    replaceOptions.IsUpsert <- true
-                    let serialized = chat |> Serializer.serialize |> BsonDocument.Parse
-                    chats.ReplaceOne(filter, serialized, replaceOptions, cts)
-                    |> ignore
-
-                let! foundChatsCursor = chats.FindAsync<BsonDocument>(filter, null, cts) |> Async.AwaitTask
-                let! cursor = foundChatsCursor.ToListAsync(cts)  |> Async.AwaitTask
-                let foundChats = cursor |> Seq.map (fun doc -> 
-                    doc.Remove("_id")
-                    doc.ToJson()
-                    |> Serializer.deserialize<Transactions.Types.Chat> ) 
-
-                match foundChats |> Seq.tryFind (fun c -> c.Id = msg.Chat.Id) with
-                | Some c -> 
-                    let chat' = upsertUser c user
-                    upsertChat chat'
-                | None -> 
-                    let chat' = 
+            let processCommand _ = async {
+                    let chats = db.GetCollection(Collections.Chats)
+                    let user = 
                         {
-                            Id = msg.Chat.Id
-                            Title = msg.Chat.Title
-                            KnownUsers = [user]
-                            Transactions = []
-                        } : Transactions.Types.Chat
-                    upsertChat chat'
+                            Id = msg.From.Id
+                            Name = sprintf "%s %s (%s)" msg.From.FirstName msg.From.LastName msg.From.Username 
+                        } : Transactions.Types.User
 
-                return Ok "You successfully joined to the Funds Splitter group."
-            }
+                    let newChat = 
+                            {
+                                Id = msg.Chat.Id
+                                Title = msg.Chat.Title
+                                KnownUsers = []
+                                Transactions = []
+                            } : Transactions.Types.Chat
 
-        let! res = 
-            msg
-            |> validateMessage
-            |> AsyncResult.fromResult processCommand
-            |> Async.bind sendAnswer
+                    do! tryFindChat chats cts msg.Chat.Id
+                        |> Async.map (Option.defaultValue newChat)
+                        |> Async.map (upsertUser user)
+                        |> Async.map (upsertChat cts chats)
 
-        return ()
-    }
+                    return Ok "You successfully joined to the Funds Splitter group."
+                }
 
-    let handler = {
-        CmdName = "/join"
-        Handler = handlerFunction
-    }
+            let! res = 
+                msg
+                |> validateMessage
+                |> AsyncResult.fromResult processCommand
+                |> Async.bind sendAnswer
+
+            return ()
+        } |> Some

@@ -12,17 +12,14 @@ module HelpHandler =
        Funds Splitter v1.0
     """
 
-    let handlerFunction botContext (msg:Message) = async {
-        let client = botContext.BotClient
-        let cts = botContext.CancellationToken
+    let handlerFunction botContext (update: Update) = 
+        fun () -> async {
+            let msg = update.Message
+            let client = botContext.BotClient
+            let cts = botContext.CancellationToken
 
-        let! _ =  
-            client.SendTextMessageAsync(new ChatId(msg.Chat.Id), helpMessage, Enums.ParseMode.Default, true, false, msg.MessageId, null, cts)
-            |> Async.AwaitTask
-        return ()
-    }
-
-    let handler = {
-        CmdName = "/help"
-        Handler = handlerFunction
-    }
+            let! _ =  
+                client.SendTextMessageAsync(new ChatId(msg.Chat.Id), helpMessage, Enums.ParseMode.Default, true, false, msg.MessageId, null, cts)
+                |> Async.AwaitTask
+            return ()
+        } |> Some

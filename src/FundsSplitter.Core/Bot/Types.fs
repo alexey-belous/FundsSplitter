@@ -15,13 +15,10 @@ module Types =
 
     type BotContext = 
         {
+            BotId: string
             BotClient: TelegramBotClient
             Storage: Storage
             CancellationToken: CancellationToken
         }
 
-    type CmdHandler = 
-        {
-            CmdName: string
-            Handler: BotContext -> Message -> Async<unit>
-        }
+    type UpdateHandler = BotContext -> Update -> (unit -> Async<unit>) option

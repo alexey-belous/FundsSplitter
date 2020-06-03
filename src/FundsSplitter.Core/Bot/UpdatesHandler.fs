@@ -4,15 +4,13 @@ module UpdatesHandler =
     open System
     open System.Threading
 
-    open Types
+    open FundsSplitter.Core.Bot.Types
+    open FundsSplitter.Core.Bot.Handlers
 
     open Microsoft.FSharpLu.Json
     open Telegram.Bot
     open Telegram.Bot.Types
     open Telegram.Bot.Types.Enums
-
-    let handleCommand cmdName handler = 
-        { CmdName = cmdName; Handler = handler}
 
     let extractCmd (message: Message) = 
         match message.Entities |> Array.tryFind (fun e -> e.Type = MessageEntityType.BotCommand) with
@@ -20,19 +18,28 @@ module UpdatesHandler =
             message.Text.Substring(cmd.Offset, cmd.Length) |> Some
         | None -> None
 
-    let routeCommands botContext (update: Update) routes = async {
+    let choose (handlers: UpdateHandler seq) context message = 
+        handlers
+        |> Seq.tryFind (fun h -> h context message |> Option.isSome)
+        |> Option.bind (fun h -> h context message)
+
+    let commandHandler cmdName (handler: UpdateHandler) context (update: Update) = 
         let msg = update.Message
         if msg <> null && msg.Entities <> null then 
-            let handler = 
-                update.Message 
-                |> extractCmd 
-                |> Option.bind (fun cmd' -> routes |> List.tryFind (fun r -> r.CmdName = cmd'))
-            match handler with
-            | Some h -> do! h.Handler botContext msg
-            | _ -> return ()
+            let cmd = update.Message |> extractCmd
+            match cmd with
+            | Some c when c = cmdName -> 
+                handler context update
+            | _ -> None
         else
-            return ()
-    }
+            None
+
+    let routes = 
+        choose [
+            commandHandler "/help" HelpHandler.handlerFunction
+            commandHandler "/join" JoinHandler.handlerFunction
+        ]
+
 
     let handleUpdates botConfig storage body = async {
             let cts = new CancellationTokenSource()
@@ -40,20 +47,17 @@ module UpdatesHandler =
             let update = Newtonsoft.Json.JsonConvert.DeserializeObject<Update>(body)
             printfn "Request body: %A" (update |> Compact.serialize)
 
-            let routes = [
-                Handlers.HelpHandler.handler
-                Handlers.JoinHandler.handler
-            ]
-
             let context = 
                 {
+                    BotId = (botConfig.Token.Split(':')).[0]
                     CancellationToken = cts.Token
                     BotClient = client
                     Storage = storage
                 }
-            do! routeCommands context update routes
 
-            return String.Empty
-
+            match routes context update with
+            | Some h -> 
+                do! h ()
+                return String.Empty
+            | None -> return String.Empty
         }
-        
