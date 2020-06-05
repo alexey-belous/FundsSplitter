@@ -37,15 +37,6 @@ Group contain following members:
         let db = botContext.Storage.Database
 
         fun () -> async {
-            let answer text = 
-                client.SendTextMessageAsync(new ChatId(msg.Chat.Id), text, Enums.ParseMode.Default, true, false, msg.MessageId, null, cts)
-                |> Async.AwaitTask
-
-            let sendAnswer res = 
-                match res with
-                | Ok r -> answer r
-                | Error e -> answer e
-
             let processCommand _ = async {
                     let chats = db.GetCollection(Collections.Chats)
 
@@ -72,7 +63,7 @@ Group contain following members:
 
                     let responseMsg = 
                         savedChat.KnownUsers
-                        |> List.map (fun u -> sprintf "- %s (@%s)" u.Name u.Username)
+                        |> List.map (fun u -> sprintf "- %s" (formatUser u))
                         |> String.concat "\n"
                         |> successfullJoinMessage
 
@@ -85,7 +76,7 @@ Group contain following members:
                 msg
                 |> validateMessage
                 |> AsyncResult.fromResult processCommand
-                |> Async.bind sendAnswer
+                |> Async.bind (sendAnswer client msg cts)
 
             return ()
         } |> Some

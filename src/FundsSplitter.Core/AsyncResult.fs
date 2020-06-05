@@ -13,5 +13,5 @@ module AsyncResult =
         return 
             match r' with
             | Ok r'' -> r'' |> f |> Ok
-            | Error e -> e |> Ok
+            | Error e -> e |> Error
     }
