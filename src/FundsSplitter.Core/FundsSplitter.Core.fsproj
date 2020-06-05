@@ -16,6 +16,7 @@
     <Compile Include="Bot/Message.fs" />
     <Compile Include="Bot/Handlers/HelpHandler.fs" />
     <Compile Include="Bot/Handlers/JoinHandler.fs" />
+    <Compile Include="Bot/Handlers/DebtsHandler.fs" />
     <Compile Include="Bot/Lifecycle.fs" />
     <Compile Include="Bot/UpdatesHandler.fs" />
   </ItemGroup>
