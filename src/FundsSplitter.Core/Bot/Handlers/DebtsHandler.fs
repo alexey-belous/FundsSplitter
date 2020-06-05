@@ -13,7 +13,7 @@ module DebtsHandler =
     open Telegram.Bot.Types
 
     let ChatNotFoundError = "There's no Funds Splitter group in this chat."
-    let NoDebtsMessage = "All debts are splitted up!"
+    let NoDebtsMessage = "All debts are settled up!"
     let DebtsAnswerRow userFrom userTo amount = 
         sprintf "%s --> %s: %s" userFrom userTo (amount.ToString())
 
