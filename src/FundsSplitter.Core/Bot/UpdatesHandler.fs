@@ -41,7 +41,9 @@ module UpdatesHandler =
             None
 
     let botAddedToGroupHandler (handler: UpdateHandler) (context: BotContext) (update: Update) = 
-        if update.Message.NewChatMembers |> Array.exists (fun m -> m.Id = int(context.BotId)) then
+        if update.Message <> null 
+            && update.Message.NewChatMembers <> null 
+            && update.Message.NewChatMembers |> Array.exists (fun m -> m.Id = int(context.BotId)) then
             handler context update
         else None
 
