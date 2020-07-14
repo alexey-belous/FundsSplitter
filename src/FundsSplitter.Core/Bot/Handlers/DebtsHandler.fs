@@ -36,6 +36,7 @@ module DebtsHandler =
                 if debts.Length = 0 then
                     NoDebtsMessage
                 else
+                printfn "%A" debts
                 debts
                 |> List.map (fun d -> DebtsAnswerRow (formatUser d.From) (formatUser d.To) d.Amount)
                 |> String.concat "\n"
@@ -45,7 +46,7 @@ module DebtsHandler =
                 |> tryFetchChat
                 |> AsyncResult.map (createInitialDebtsMatrix >> getDebts)
                 |> AsyncResult.map formatDebts
-                |> Async.bind (sendMarkdownAnswer client msg cts)
+                |> Async.bind (sendAnswer client msg cts)
 
             return ()
         } |> Some
