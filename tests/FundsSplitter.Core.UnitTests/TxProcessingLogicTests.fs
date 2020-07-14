@@ -185,3 +185,31 @@ module TxProcessingLogicTests =
             { From = u2; To = u1; Amount = 25.0m; } ]
     
         expectedDebts |> should equal debts
+
+    [<Fact>]
+    let ``Should compute debts resolving transactions for two users with splittingSubset`` () =
+        let u1 = users.[0]
+        let u2 = users.[1]
+        
+        let txs = [
+            createTx u1 Payment 100.0m [u2]
+        ]
+        let chat = {
+            Id = 1L
+            Title = "chat1"
+
+            KnownUsers = [u1; u2;]
+
+            Transactions = txs
+        }
+
+        let matrix = createInitialDebtsMatrix chat
+        printfn "%A" matrix
+
+        let debts = getDebts matrix
+                    |> addSttlingUpsToDebts chat
+
+        let expectedDebts = [
+            { From = u2; To = u1; Amount = 100.0m; } ]
+    
+        expectedDebts |> should equal debts

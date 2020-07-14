@@ -8,6 +8,14 @@ module AsyncResult =
         | Error e -> return Error e
     }
 
+    let bind f r = async {
+        let! r' = r
+        return
+            match r' with
+            | Ok r'' -> r'' |> f
+            | Error e -> e |> Error
+    }
+
     let map f r = async {
         let! r' = r
         return 

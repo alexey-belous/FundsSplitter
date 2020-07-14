@@ -13,6 +13,9 @@ module Message =
     let extractCmd (message: Message) = 
         exctractEntitiesText MessageEntityType.BotCommand message |> Array.tryHead
 
+    let extractMentions (message: Message) = 
+        exctractEntitiesText MessageEntityType.Mention message
+
     let sendAnswerWithParseMode parseMode (client: TelegramBotClient) (msg: Message) cts res = 
         let answer text = 
             client.SendTextMessageAsync(new ChatId(msg.Chat.Id), text, parseMode, true, false, msg.MessageId, null, cts)

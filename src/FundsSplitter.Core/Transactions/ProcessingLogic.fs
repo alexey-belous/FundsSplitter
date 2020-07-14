@@ -11,11 +11,16 @@ module ProcessingLogic =
 
     let calculateTransactionDebts (tx: Tx) = 
         let idealDebt = tx.Amount / decimal(tx.SplittingSubset.Length)
-        tx.SplittingSubset
-        |> List.map (fun u -> 
-            if u.Id = tx.User.Id 
-            then (u, tx.Amount - idealDebt) 
-            else (u, 0.0m - idealDebt))
+        let txDebts = 
+            tx.SplittingSubset
+            |> List.map (fun u -> 
+                if u.Id = tx.User.Id 
+                then (u, tx.Amount - idealDebt) 
+                else (u, 0.0m - idealDebt))
+        if tx.SplittingSubset |> List.tryFind (fun u -> u.Id = tx.User.Id) |> Option.isSome then
+            txDebts
+        else
+            (tx.User, tx.Amount) :: txDebts
 
     let calculateUserSettlingUps txs = 
         txs
@@ -65,8 +70,6 @@ module ProcessingLogic =
                 let delta = (maxGiver |> snd) + (minReceiver |> snd)
                 let newGiverAmount = System.Math.Max(delta, 0.0m)
                 let newReceiverAmount = System.Math.Min(delta, 0.0m)
-
-                // printfn "Participants: %A %A" maxGiver minReceiver
 
                 let newMatrix = 
                     { matrix with 
