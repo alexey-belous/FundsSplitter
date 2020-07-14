@@ -13,7 +13,7 @@ module Message =
     let (|LanguageCode|) = function
         | "en" -> En
         | "ru" -> Ru
-        | _ -> En
+        | _ -> Ru
 
     let getLanguageCode (update: Update) = 
         let msg = if update.Message <> null then update.Message else if update.EditedMessage <> null then update.EditedMessage else null
