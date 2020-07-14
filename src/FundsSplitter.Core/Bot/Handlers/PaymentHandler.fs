@@ -15,18 +15,51 @@ module PaymentHandler =
     open Telegram.Bot
     open Telegram.Bot.Types
 
-    let ChatNotFoundError = "There's no Funds Splitter group in this chat."
-    let MessageDoesntContainAmount = "I couldn't find amount in your message."
-    let NotAllMentionedUsersWasAddedToGroup = "Not all mentioned users was added to the splitting group."
-    let AmountMustBePositive = "Amount value must be possitive."
-    let YouAreNotInTheGroup = "You aren't in the group."
+    let ChatNotFoundErrorEn = "There's no Funds Splitter group in this chat."
+    let MessageDoesntContainAmountEn = "I couldn't find amount in your message."
+    let NotAllMentionedUsersWasAddedToGroupEn = "Not all mentioned users was added to the splitting group."
+    let AmountMustBePositiveEn = "Amount value must be possitive."
+    let YouAreNotInTheGroupEn = "You aren't in the Funds Splitter group. To joint the group send me a /join command."
 
-    let PayCommandAnswer amount description splittingSubset = 
+    let PayCommandAnswerEn amount description splittingSubset = 
         sprintf 
             "Amount: %M UAH.\n%s\nSplit between: %s." 
             amount
             (if description |> String.IsNullOrEmpty then String.Empty else description |> sprintf "Description: `%s`." )
             (splittingSubset |> List.map formatUser |> joinStr ", ")
+
+    let ChatNotFoundErrorRu = "В этом чате нет группы Funds Splitter."
+    let MessageDoesntContainAmountRu = "Я не могу найти сумму в вашем сообщении."
+    let NotAllMentionedUsersWasAddedToGroupRu = "Некоторые из упомянутых пользователей не были добавлены в группу Funds Splitter."
+    let AmountMustBePositiveRu = "Значение суммы должно быть положительным."
+    let YouAreNotInTheGroupRu = "Вы не добавленны в группу Funds Splitter. Чтобы присоедениться к группе отправьте мне комманду /join."
+    let PayCommandAnswerRu amount description splittingSubset = 
+        sprintf 
+            "Сумма: %M грн.\n%s\nРазделена между: %s." 
+            amount
+            (if description |> String.IsNullOrEmpty then String.Empty else description |> sprintf "Описание: `%s`." )
+            (splittingSubset |> List.map formatUser |> joinStr ", ")
+
+    let ChatNotFoundError = function
+        | En -> ChatNotFoundErrorEn
+        | Ru -> ChatNotFoundErrorRu
+    let MessageDoesntContainAmount = function
+        | En -> MessageDoesntContainAmountEn
+        | Ru -> MessageDoesntContainAmountRu
+    let NotAllMentionedUsersWasAddedToGroup = function
+        | En -> NotAllMentionedUsersWasAddedToGroupEn
+        | Ru -> NotAllMentionedUsersWasAddedToGroupRu
+    let AmountMustBePositive = function
+        | En -> AmountMustBePositiveEn
+        | Ru -> AmountMustBePositiveRu
+    let YouAreNotInTheGroup = function
+        | En -> YouAreNotInTheGroupEn
+        | Ru -> YouAreNotInTheGroupRu
+
+    let PayCommandAnswer = function
+        | En -> PayCommandAnswerEn
+        | Ru -> PayCommandAnswerRu
+    
 
     type TxRaw = 
         {
@@ -36,15 +69,15 @@ module PaymentHandler =
             Amount: decimal
         }
 
-    let parseText (msg: Telegram.Bot.Types.Message) chat = 
+    let parseText lang (msg: Telegram.Bot.Types.Message) chat = 
         let text = msg.Text |> replaceSpaces
         let words = text.Split(' ')
         let amount = words |> Array.tryFind (fun w -> Decimal.TryParse(w) |> fst)
         match amount with
-        | None -> Error MessageDoesntContainAmount
+        | None -> lang |> MessageDoesntContainAmount |> Error
         | Some a -> 
             let amount' = a.Replace(",", ".") |> Decimal.Parse 
-            if amount' <= 0M then Error AmountMustBePositive
+            if amount' <= 0M then lang |> AmountMustBePositive |> Error
             else
 
             let mentions = msg |> extractMentions
@@ -64,14 +97,14 @@ module PaymentHandler =
                 Mentions = mentions
             } |> Ok
 
-    let composeAnswer (tx': Tx, tx: TxRaw) = 
-        PayCommandAnswer tx'.Amount tx.Description tx'.SplittingSubset
+    let composeAnswer lang (tx': Tx, tx: TxRaw) = 
+        PayCommandAnswer lang tx'.Amount tx.Description tx'.SplittingSubset
         |> Ok
 
-    let createTx (msg: Message) tx = 
+    let createTx lang (msg: Message) tx = 
         let author' = tx.Chat.KnownUsers |> List.tryFind (fun u -> u.Id = msg.From.Id)
         if author' |> Option.isNone 
-        then Error YouAreNotInTheGroup
+        then lang |> YouAreNotInTheGroup |> Error
         else
         let author = author'.Value
         let splittingSubset = 
@@ -86,7 +119,7 @@ module PaymentHandler =
                     |> List.map (fun u -> u.Value)
         
         if tx.Mentions.Length > 0 && tx.Mentions.Length <> splittingSubset.Length
-        then NotAllMentionedUsersWasAddedToGroup |> Error
+        then lang |> NotAllMentionedUsersWasAddedToGroup |> Error
         else
         
         let tx' = 
@@ -111,12 +144,13 @@ module PaymentHandler =
             let db = botContext.Storage.Database
             let chats = db.GetCollection(Collections.Chats)
             let cts = botContext.CancellationToken
+            let lang = getLanguageCode update
 
             let tryFetchChat chatId = async {
                 let! chat = tryFindChat chats cts chatId
                 match chat with
                 | Some c -> return Ok c
-                | None -> return Error ChatNotFoundError
+                | None -> return lang |> ChatNotFoundError |> Error
             }
 
             let addTx (tx, tx') = 
@@ -129,10 +163,10 @@ module PaymentHandler =
             let! res = 
                 msg.Chat.Id
                 |> tryFetchChat
-                |> AsyncResult.bind (parseText msg)
-                |> AsyncResult.bind (createTx msg)
+                |> AsyncResult.bind (parseText lang msg)
+                |> AsyncResult.bind (createTx lang msg)
                 |> AsyncResult.bind addTx
-                |> AsyncResult.bind composeAnswer
+                |> AsyncResult.bind (composeAnswer lang)
                 |> Async.bind (sendAnswer client msg cts)
 
             return ()
@@ -145,12 +179,13 @@ module PaymentHandler =
             let db = botContext.Storage.Database
             let chats = db.GetCollection(Collections.Chats)
             let cts = botContext.CancellationToken
+            let lang = getLanguageCode update
 
             let tryFetchChat chatId = async {
                 let! chat = tryFindChat chats cts chatId
                 match chat with
                 | Some c -> return Ok c
-                | None -> return Error ChatNotFoundError
+                | None -> return lang |> ChatNotFoundError |> Error
             }
 
             let replaceTx (tx, tx': Tx) = 
@@ -166,10 +201,10 @@ module PaymentHandler =
             let! res = 
                 msg.Chat.Id
                 |> tryFetchChat
-                |> AsyncResult.bind (parseText msg)
-                |> AsyncResult.bind (createTx msg)
+                |> AsyncResult.bind (parseText lang msg)
+                |> AsyncResult.bind (createTx lang msg)
                 |> AsyncResult.bind replaceTx
-                |> AsyncResult.bind composeAnswer
+                |> AsyncResult.bind (composeAnswer lang)
                 |> Async.bind (sendAnswer client msg cts)
 
             return ()

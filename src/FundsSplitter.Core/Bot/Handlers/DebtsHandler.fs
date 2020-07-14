@@ -12,10 +12,21 @@ module DebtsHandler =
     open Telegram.Bot
     open Telegram.Bot.Types
 
-    let ChatNotFoundError = "There's no Funds Splitter group in this chat."
-    let NoDebtsMessage = "All debts are settled up!"
+    let ChatNotFoundErrorEn = "There's no Funds Splitter group in this chat."
+    let NoDebtsMessageEn = "All debts are settled up!"
     let DebtsAnswerRow userFrom userTo amount = 
         sprintf "%s --> %s: %s" userFrom userTo (amount.ToString())
+
+    let ChatNotFoundErrorRu = "В этом чате нет группы Funds Splitter."
+    let NoDebtsMessageRu = "Все долги погашены!"
+
+    let ChatNotFoundError = function
+        | En -> ChatNotFoundErrorEn
+        | Ru -> ChatNotFoundErrorRu
+
+    let NoDebtsMessage = function
+        | En -> NoDebtsMessageEn
+        | Ru -> NoDebtsMessageRu
 
     let handlerFunction botContext (update: Update) = 
         fun () -> async {
@@ -24,17 +35,18 @@ module DebtsHandler =
             let db = botContext.Storage.Database
             let chats = db.GetCollection(Collections.Chats)
             let cts = botContext.CancellationToken
+            let lang = getLanguageCode update
 
             let tryFetchChat chatId = async {
                 let! chat = tryFindChat chats cts chatId
                 match chat with
                 | Some c -> return Ok c
-                | None -> return Error ChatNotFoundError
+                | None -> return lang |> ChatNotFoundError |> Error 
             }
 
             let formatDebts (debts: FundsSplitter.Core.Transactions.Types.Debt list) = 
                 if debts.Length = 0 || debts |> List.exists (fun d -> d.Amount > 0M) |> not then
-                    NoDebtsMessage
+                    NoDebtsMessage lang
                 else
                 debts
                 |> List.map (fun d -> DebtsAnswerRow (formatUser d.From) (formatUser d.To) d.Amount)
