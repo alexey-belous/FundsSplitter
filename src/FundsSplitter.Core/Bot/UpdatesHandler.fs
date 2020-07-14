@@ -21,7 +21,18 @@ module UpdatesHandler =
     let commandHandler cmdName (handler: UpdateHandler) context (update: Update) = 
         let msg = update.Message
         if msg <> null && msg.Entities <> null then 
-            let cmd = update.Message |> extractCmd
+            let cmd = msg |> extractCmd
+            match cmd with
+            | Some c when c = cmdName -> 
+                handler context update
+            | _ -> None
+        else
+            None
+
+    let editedCommandHandler cmdName (handler: UpdateHandler) context (update: Update) = 
+        let msg = update.EditedMessage
+        if msg <> null && msg.Entities <> null then 
+            let cmd = msg |> extractCmd
             match cmd with
             | Some c when c = cmdName -> 
                 handler context update
@@ -34,8 +45,12 @@ module UpdatesHandler =
             commandHandler "/help" HelpHandler.handlerFunction
             commandHandler "/join" JoinHandler.handlerFunction
             commandHandler "/debts" DebtsHandler.handlerFunction
+
             commandHandler "/pay" PaymentHandler.handlerFunction
+            editedCommandHandler "/pay" PaymentHandler.updateHandlerFunction
+
             commandHandler "/payback" SettleUpHandler.handlerFunction 
+            editedCommandHandler "/payback" SettleUpHandler.updateHandlerFunction
         ]
 
 

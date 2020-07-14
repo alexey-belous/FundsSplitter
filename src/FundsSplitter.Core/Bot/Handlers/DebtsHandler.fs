@@ -33,7 +33,7 @@ module DebtsHandler =
             }
 
             let formatDebts (debts: FundsSplitter.Core.Transactions.Types.Debt list) = 
-                if debts.Length = 0 then
+                if debts.Length = 0 || debts |> List.exists (fun d -> d.Amount > 0M) |> not then
                     NoDebtsMessage
                 else
                 debts

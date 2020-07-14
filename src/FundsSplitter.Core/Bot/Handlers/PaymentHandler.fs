@@ -18,6 +18,7 @@ module PaymentHandler =
     let ChatNotFoundError = "There's no Funds Splitter group in this chat."
     let MessageDoesntContainAmount = "I couldn't find amount in your message."
     let NotAllMentionedUsersWasAddedToGroup = "Not all mentioned users was added to the splitting group."
+    let AmountMustBePositive = "Amount value must be possitive."
     let YouAreNotInTheGroup = "You aren't in the group."
 
     let PayCommandAnswer amount description splittingSubset = 
@@ -35,6 +36,74 @@ module PaymentHandler =
             Amount: decimal
         }
 
+    let parseText (msg: Telegram.Bot.Types.Message) chat = 
+        let text = msg.Text |> replaceSpaces
+        let words = text.Split(' ')
+        let amount = words |> Array.tryFind (fun w -> Decimal.TryParse(w) |> fst)
+        match amount with
+        | None -> Error MessageDoesntContainAmount
+        | Some a -> 
+            let amount' = a.Replace(",", ".") |> Decimal.Parse 
+            if amount' <= 0M then Error AmountMustBePositive
+            else
+
+            let mentions = msg |> extractMentions
+            let description = 
+                mentions 
+                |> Array.fold 
+                    (fun acc i -> acc.Replace(i, String.Empty): string)
+                    (text
+                    .Replace(a, String.Empty)
+                    .Replace(extractCmd msg |> Option.defaultValue String.Empty, String.Empty))
+                |> replaceSpaces
+                |> trim
+            {
+                Chat = chat
+                Description = description
+                Amount = amount'
+                Mentions = mentions
+            } |> Ok
+
+    let composeAnswer (tx': Tx, tx: TxRaw) = 
+        PayCommandAnswer tx'.Amount tx.Description tx'.SplittingSubset
+        |> Ok
+
+    let createTx (msg: Message) tx = 
+        let author' = tx.Chat.KnownUsers |> List.tryFind (fun u -> u.Id = msg.From.Id)
+        if author' |> Option.isNone 
+        then Error YouAreNotInTheGroup
+        else
+        let author = author'.Value
+        let splittingSubset = 
+            match tx.Mentions with
+            | [||] -> tx.Chat.KnownUsers
+            | _ ->  tx.Mentions 
+                    |> List.ofArray 
+                    |> List.map (fun username -> 
+                        tx.Chat.KnownUsers 
+                        |> List.tryFind (fun u -> sprintf "@%s" u.Username = username))
+                    |> List.filter (fun u -> u.IsSome)
+                    |> List.map (fun u -> u.Value)
+        
+        if tx.Mentions.Length > 0 && tx.Mentions.Length <> splittingSubset.Length
+        then NotAllMentionedUsersWasAddedToGroup |> Error
+        else
+        
+        let tx' = 
+            {
+                Id = Guid.NewGuid()
+
+                User = author
+                Message = {
+                    Id = msg.MessageId
+                    Text = msg.Text
+                }
+                Type = Payment
+                Amount = tx.Amount
+                SplittingSubset = splittingSubset
+            }
+        (tx, tx') |> Ok
+
     let handlerFunction botContext (update: Update) = 
         fun () -> async {
             let msg = update.Message
@@ -50,81 +119,56 @@ module PaymentHandler =
                 | None -> return Error ChatNotFoundError
             }
 
-            let parseText chat = 
-                let text = msg.Text |> replaceSpaces
-                let words = text.Split(' ')
-                let amount = words |> Array.tryFind (fun w -> Decimal.TryParse(w) |> fst)
-                match amount with
-                | None -> Error MessageDoesntContainAmount
-                | Some a -> 
-                    let amount' = a.Replace(",", ".") |> Decimal.Parse 
-
-                    let mentions = msg |> extractMentions
-                    let description = 
-                        mentions 
-                        |> Array.fold 
-                            (fun acc i -> acc.Replace(i, String.Empty): string)
-                            (text
-                            .Replace(a, String.Empty)
-                            .Replace(extractCmd msg |> Option.defaultValue String.Empty, String.Empty))
-                        |> replaceSpaces
-                        |> trim
-                    {
-                        Chat = chat
-                        Description = description
-                        Amount = amount'
-                        Mentions = mentions
-                    } |> Ok
-
-            let addTx tx = 
-                let author' = tx.Chat.KnownUsers |> List.tryFind (fun u -> u.Id = msg.From.Id)
-                if author' |> Option.isNone 
-                then Error YouAreNotInTheGroup
-                else
-                let author = author'.Value
-                let splittingSubset = 
-                    match tx.Mentions with
-                    | [||] -> tx.Chat.KnownUsers
-                    | _ ->  tx.Mentions 
-                            |> List.ofArray 
-                            |> List.map (fun username -> 
-                                tx.Chat.KnownUsers 
-                                |> List.tryFind (fun u -> sprintf "@%s" u.Username = username))
-                            |> List.filter (fun u -> u.IsSome)
-                            |> List.map (fun u -> u.Value)
-                
-                if tx.Mentions.Length > 0 && tx.Mentions.Length <> splittingSubset.Length
-                then NotAllMentionedUsersWasAddedToGroup |> Error
-                else
-                
-                let tx' = 
-                    {
-                        Id = Guid.NewGuid()
-
-                        User = author
-                        Message = {
-                            Id = msg.MessageId
-                            Text = msg.Text
-                        }
-                        Type = Payment
-                        Amount = tx.Amount
-                        SplittingSubset = splittingSubset
-                    }
+            let addTx (tx, tx') = 
                 tx'
                 |> addTransaction tx.Chat
                 |> upsertChat cts chats |> ignore
                 (tx', tx)
                 |> Ok
 
-            let composeAnswer (tx': Tx, tx: TxRaw) = 
-                PayCommandAnswer tx'.Amount tx.Description tx'.SplittingSubset
+            let! res = 
+                msg.Chat.Id
+                |> tryFetchChat
+                |> AsyncResult.bind (parseText msg)
+                |> AsyncResult.bind (createTx msg)
+                |> AsyncResult.bind addTx
+                |> AsyncResult.bind composeAnswer
+                |> Async.bind (sendAnswer client msg cts)
+
+            return ()
+        } |> Some
+
+    let updateHandlerFunction botContext (update: Update) = 
+        fun () -> async {
+            let msg = update.EditedMessage
+            let client = botContext.BotClient
+            let db = botContext.Storage.Database
+            let chats = db.GetCollection(Collections.Chats)
+            let cts = botContext.CancellationToken
+
+            let tryFetchChat chatId = async {
+                let! chat = tryFindChat chats cts chatId
+                match chat with
+                | Some c -> return Ok c
+                | None -> return Error ChatNotFoundError
+            }
+
+            let replaceTx (tx, tx': Tx) = 
+                let oldTx = tx.Chat.Transactions |> List.find (fun t -> t.Message.Id = msg.MessageId)
+                let newTx = { tx' with Id = oldTx.Id }
+
+                tx'
+                |> editTransaction tx.Chat
+                |> upsertChat cts chats |> ignore
+                (tx', tx)
                 |> Ok
 
             let! res = 
                 msg.Chat.Id
                 |> tryFetchChat
-                |> AsyncResult.bind parseText
-                |> AsyncResult.bind addTx
+                |> AsyncResult.bind (parseText msg)
+                |> AsyncResult.bind (createTx msg)
+                |> AsyncResult.bind replaceTx
                 |> AsyncResult.bind composeAnswer
                 |> Async.bind (sendAnswer client msg cts)
 
