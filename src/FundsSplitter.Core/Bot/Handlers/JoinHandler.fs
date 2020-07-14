@@ -15,8 +15,17 @@ module JoinHandler =
     open Telegram.Bot.Types
     open Telegram.Bot.Types.Enums
 
-    let invalidGroupTypeError = "The /join command can be executed only inside a group."
-    let successfullJoinMessage = 
+    let invalidGroupTypeErrorRu = "Команда /join может быть выполнена только внутри группы."
+    let successfullJoinMessageRu = 
+        sprintf """
+Вы успешно присоединились к группе.
+
+Группа содержит следующих участников:
+%s
+"""
+
+    let invalidGroupTypeErrorEn = "The /join command can be executed only inside a group."
+    let successfullJoinMessageEn = 
         sprintf """
 You successfully joined to the splitting group.
 
@@ -24,9 +33,17 @@ Group contain following members:
 %s
 """
 
-    let validateMessage (msg: Message) = 
+    let successfullJoinMessage = function
+        | En -> successfullJoinMessageEn
+        | Ru -> successfullJoinMessageRu
+
+    let invalidGroupTypeError = function
+        | En -> invalidGroupTypeErrorEn
+        | Ru -> invalidGroupTypeErrorRu
+
+    let validateMessage lang (msg: Message) = 
         if msg.Chat.Type <> ChatType.Group then
-            Error invalidGroupTypeError
+            lang |> invalidGroupTypeError |> Error 
         else
         Ok msg
 
@@ -35,6 +52,7 @@ Group contain following members:
         let client = botContext.BotClient
         let cts = botContext.CancellationToken
         let db = botContext.Storage.Database
+        let lang = getLanguageCode update
 
         fun () -> async {
             let processCommand _ = async {
@@ -65,16 +83,14 @@ Group contain following members:
                         savedChat.KnownUsers
                         |> List.map (fun u -> sprintf "- %s" (formatUser u))
                         |> String.concat "\n"
-                        |> successfullJoinMessage
-
-                    printfn "%s" responseMsg
+                        |> (successfullJoinMessage lang)
 
                     return Ok responseMsg
                 }
 
             let! res = 
                 msg
-                |> validateMessage
+                |> (validateMessage lang)
                 |> AsyncResult.fromResult processCommand
                 |> Async.bind (sendAnswer client msg cts)
 

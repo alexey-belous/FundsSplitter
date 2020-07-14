@@ -1,9 +1,25 @@
 namespace FundsSplitter.Core.Bot
 
 module Message = 
+    open System 
     open Telegram.Bot
     open Telegram.Bot.Types
     open Telegram.Bot.Types.Enums
+
+    type LanguageCode = | En | Ru
+    let languageCodeToStr = function
+        | En -> "en"
+        | Ru -> "ru"
+    let (|LanguageCode|) = function
+        | "en" -> En
+        | "ru" -> Ru
+        | _ -> En
+
+    let getLanguageCode (update: Update) = 
+        let msg = if update.Message <> null then update.Message else if update.EditedMessage <> null then update.EditedMessage else null
+        if msg <> null then
+            msg.From.LanguageCode |> (|LanguageCode|)
+        else En
 
     let exctractEntitiesText entityType (message: Message) = 
         message.Entities 
@@ -11,7 +27,9 @@ module Message =
         |> Array.map (fun e -> message.Text.Substring(e.Offset, e.Length))
 
     let extractCmd (message: Message) = 
-        exctractEntitiesText MessageEntityType.BotCommand message |> Array.tryHead
+        match exctractEntitiesText MessageEntityType.BotCommand message |> Array.tryHead with
+        | None -> None
+        | Some cmd -> cmd.Replace("@funds_splitter_bot", String.Empty) |> Some
 
     let extractMentions (message: Message) = 
         exctractEntitiesText MessageEntityType.Mention message
