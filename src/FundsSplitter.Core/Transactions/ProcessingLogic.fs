@@ -94,7 +94,7 @@ module ProcessingLogic =
 
         getDebtsInner debtsMatrix []
 
-    let addSttlingUpsToDebts chat debts =
+    let addSettlingUpsToDebts chat debts =
         let userSettlingsUps = 
             chat.Transactions
             |> calculateUserSettlingUps
@@ -106,7 +106,11 @@ module ProcessingLogic =
                 let sups' = 
                     sups
                     |> List.map (fun s -> s.SplittingSubset.[0], s.Amount)
-                let amount = getUserDebtAmount sups' (d.To.Id)
+                let amount = 
+                    sups'
+                    |> List.filter (fun (receiver, amount) -> receiver.Id = (d.To.Id))
+                    |> List.append ([(d.To), 0M])
+                    |> List.sumBy snd
                 { d with Amount = d.Amount - amount }
             | None -> d )
     

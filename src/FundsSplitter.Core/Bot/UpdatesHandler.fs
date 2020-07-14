@@ -35,6 +35,7 @@ module UpdatesHandler =
             commandHandler "/join" JoinHandler.handlerFunction
             commandHandler "/debts" DebtsHandler.handlerFunction
             commandHandler "/pay" PaymentHandler.handlerFunction
+            commandHandler "/payback" SettleUpHandler.handlerFunction 
         ]
 
 
