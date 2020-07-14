@@ -2,11 +2,10 @@ namespace FundsSplitter.Core.Bot.Handlers
 
 module PaymentHandler = 
     open System
-    open System.Text
-    open System.Text.RegularExpressions
 
     open FundsSplitter.Core
     open FundsSplitter.Core.Storage
+    open FundsSplitter.Core.Strings
     open FundsSplitter.Core.Bot.Types
     open FundsSplitter.Core.Bot.Message
     open FundsSplitter.Core.Transactions.Types
@@ -21,16 +20,12 @@ module PaymentHandler =
     let NotAllMentionedUsersWasAddedToGroup = "Not all mentioned users was added to the splitting group."
     let YouAreNotInTheGroup = "You aren't in the group."
 
-    let replaceSpaces text = 
-        let options = RegexOptions.None;
-        let regex = new Regex("[ ]{2,}", options)
-        regex.Replace(text, " ")
-
-    let trim (text: string) = text.Trim()
-
-    let joinStr (separator: string) (values: string list) = 
-        String.Join(separator, values)
-
+    let PayCommandAnswer amount description splittingSubset = 
+        sprintf 
+            "Amount: %M UAH.\n%s\nSplit between: %s." 
+            amount
+            (if description |> String.IsNullOrEmpty then String.Empty else description |> sprintf "Description: `%s`." )
+            (splittingSubset |> List.map formatUser |> joinStr ", ")
 
     type TxRaw = 
         {
@@ -122,14 +117,7 @@ module PaymentHandler =
                 |> Ok
 
             let composeAnswer (tx': Tx, tx: TxRaw) = 
-                let res = 
-                    sprintf 
-                        "Amount: %M UAH.\n%s\nSplit between: %s." 
-                        tx'.Amount 
-                        (if tx.Description |> String.IsNullOrEmpty then String.Empty else tx.Description |> sprintf "Description: `%s`." )
-                        (tx'.SplittingSubset |> List.map formatUser |> joinStr ", ")
-                printfn "%A" res
-                res
+                PayCommandAnswer tx'.Amount tx.Description tx'.SplittingSubset
                 |> Ok
 
             let! res = 
@@ -138,7 +126,6 @@ module PaymentHandler =
                 |> AsyncResult.bind parseText
                 |> AsyncResult.bind addTx
                 |> AsyncResult.bind composeAnswer
-                // |> Async.bind (sendMarkdownAnswer client msg cts)
                 |> Async.bind (sendAnswer client msg cts)
 
             return ()

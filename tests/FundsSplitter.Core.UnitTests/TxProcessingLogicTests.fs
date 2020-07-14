@@ -179,7 +179,7 @@ module TxProcessingLogicTests =
         let matrix = createInitialDebtsMatrix chat
 
         let debts = getDebts matrix
-                    |> addSttlingUpsToDebts chat
+                    |> addSettlingUpsToDebts chat
 
         let expectedDebts = [
             { From = u2; To = u1; Amount = 25.0m; } ]
@@ -204,12 +204,41 @@ module TxProcessingLogicTests =
         }
 
         let matrix = createInitialDebtsMatrix chat
-        printfn "%A" matrix
 
         let debts = getDebts matrix
-                    |> addSttlingUpsToDebts chat
+                    |> addSettlingUpsToDebts chat
 
         let expectedDebts = [
             { From = u2; To = u1; Amount = 100.0m; } ]
     
         expectedDebts |> should equal debts
+
+    [<Fact>]
+    let ``Should compute debts resolving transaction for two users with several settling ups`` () =
+        let u1 = users.[0]
+        let u2 = users.[1]
+        
+        let txs = [
+            createTx u1 Payment 100.0m [u1; u2]
+
+            createTx u2 SettlingUp 25.0m [u1]
+            createTx u2 SettlingUp 25.0m [u1]
+        ]
+        let chat = {
+            Id = 1L
+            Title = "chat1"
+
+            KnownUsers = [u1; u2;]
+
+            Transactions = txs
+        }
+
+        let matrix = createInitialDebtsMatrix chat
+
+        let debts = getDebts matrix
+                    |> addSettlingUpsToDebts chat
+
+        let expectedDebts = [
+            { From = u2; To = u1; Amount = 0m; } ]
+    
+        debts |> should equal expectedDebts
