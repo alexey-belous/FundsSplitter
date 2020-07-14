@@ -40,9 +40,16 @@ module UpdatesHandler =
         else
             None
 
+    let botAddedToGroupHandler (handler: UpdateHandler) (context: BotContext) (update: Update) = 
+        if update.Message.NewChatMembers |> Array.exists (fun m -> m.Id = int(context.BotId)) then
+            handler context update
+        else None
+
     let routes = 
         choose [
             commandHandler "/help" HelpHandler.handlerFunction
+            botAddedToGroupHandler HelpHandler.handlerFunction
+
             commandHandler "/join" JoinHandler.handlerFunction
             commandHandler "/debts" DebtsHandler.handlerFunction
 
