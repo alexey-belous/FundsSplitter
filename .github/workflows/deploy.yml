@@ -35,6 +35,6 @@ jobs:
             ARGS: "-rltgoDzvO --delete"
             SOURCE: "./package.tar.gz"
             REMOTE_HOST: ${{ secrets.PROD_HOSTNAME }}
-            REMOTE_USER: ${{ secrets.PROD_USERNAME }
+            REMOTE_USER: ${{ secrets.PROD_USERNAME }}
             REMOTE_PORT: ${{ secrets.PROD_PORT }}
             TARGET: /tmp  
