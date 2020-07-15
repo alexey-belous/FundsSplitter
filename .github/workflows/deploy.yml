@@ -18,15 +18,23 @@ jobs:
       - name: Publish
         run: ./publish.sh
       - name: Inject config.json
-        run: echo $PROD_CONFIG >> ./publish/app/config.json
+        run: echo ${{ secrets.PROD_CONFIG }} >> ./publish/app/config.json
       - name: Inject ENV
-        run: echo $PROD_ENV >> ./publish/.env
+        run: echo $${{ secrets.PROD_ENV }} >> ./publish/.env
+      - name: Compress artifacts
+        run: tar -czf ./package.tar.gz ./publish/**
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2
         with:
           name: Package
-          path: ./publish
-      - name: Inject ENV
-        run: echo $PRODSSH >> /root/cert
-      - name: Deploy
-        run: ./deploy.sh
+          path: ./package.tar.gz
+      - name: Deploy to Server
+        uses: easingthemes/ssh-deploy@v2.1.1
+        env:
+            SSH_PRIVATE_KEY: ${{ secrets.PRODSSH }}
+            ARGS: "-rltgoDzvO --delete"
+            SOURCE: "./package.tar.gz"
+            REMOTE_HOST: ${{ secrets.PROD_HOSTNAME }}
+            REMOTE_USER: ${{ secrets.PROD_USERNAME }
+            REMOTE_PORT: ${{ secrets.PROD_PORT }}
+            TARGET: /tmp  
