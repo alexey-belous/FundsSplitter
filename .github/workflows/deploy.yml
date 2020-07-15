@@ -17,6 +17,7 @@ jobs:
           dotnet-version: 2.2.103
       - name: Publish
         run: ./publish.sh
+
       - name: Inject config.json
         run: "echo $PROD_CONFIG >> ./publish/app/config.json"
         env:
@@ -27,16 +28,9 @@ jobs:
         env:
           PROD_ENV: ${{secrets.PROD_ENV}}
         shell: bash
+
       - name: Compress artifacts
         run: tar -czf ./package.tar.gz ./publish/**
-      - name: Stop app
-        uses: garygrossgarten/github-action-ssh@release
-        with:
-          host: ${{ secrets.PROD_HOSTNAME }}
-          username: ${{ secrets.PROD_USERNAME }}
-          privateKey: ${{ secrets.PRODSSH }}
-          port: 1122
-          command: "cd /app && docker-compose down"
       - name: Deploy to Server
         uses: easingthemes/ssh-deploy@v2.1.1
         env:
@@ -47,11 +41,11 @@ jobs:
           REMOTE_USER: ${{ secrets.PROD_USERNAME }}
           REMOTE_PORT: ${{ secrets.PROD_PORT }}
           TARGET: /app
-      - name: Start app
+      - name: Restart app
         uses: garygrossgarten/github-action-ssh@release
         with:
           host: ${{ secrets.PROD_HOSTNAME }}
           username: ${{ secrets.PROD_USERNAME }}
           privateKey: ${{ secrets.PRODSSH }}
           port: 1122
-          command: "cd /app && tar -zxvf ./package.tar.gz && cp -r ./publish/** ./ && rm -rf ./publish && rm -rf ./package.tar.gz && mv ./env ./.env && docker-compose up -d"
+          command: "cd /app && docker-compose down && tar -zxvf ./package.tar.gz && cp -r ./publish/** ./ && rm -rf ./publish && rm -rf ./package.tar.gz && mv ./env ./.env && docker-compose up -d"
