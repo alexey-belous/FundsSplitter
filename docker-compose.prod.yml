@@ -15,6 +15,7 @@ services:
       - "127.0.0.1:27017:27017"
     volumes:
       - ./mongodb_data:/data
+
   app:
     image: mcr.microsoft.com/dotnet/core/runtime:2.2
     restart: always
