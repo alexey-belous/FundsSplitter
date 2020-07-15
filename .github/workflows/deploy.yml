@@ -20,6 +20,11 @@ jobs:
       run: echo $PROD_CONFIG >> ./publish/app/config.json
     - name: Inject ENV
       run: echo $PROD_ENV >> ./publish/.env
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: Package
+        path: ./publish
     - name: Inject ENV
       run: echo $PRODSSH >> /root/cert
     - name: Deploy
