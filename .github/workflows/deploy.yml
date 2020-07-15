@@ -14,19 +14,33 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 3.1.101
+          dotnet-version: 2.2.103
       - name: Publish
         run: ./publish.sh
       - name: Inject config.json
-        run: echo $PROD_CONFIG >> ./publish/app/config.json
+        run: 'echo $PROD_CONFIG >> ./publish/app/config.json'
+        env:
+          PROD_CONFIG: ${{secrets.PROD_CONFIG}}
+        shell: bash
       - name: Inject ENV
-        run: echo $PROD_ENV >> ./publish/.env
+        run: 'echo $PROD_ENV >> ./publish/.env'
+        env:
+          PROD_ENV: ${{secrets.PROD_ENV}}
+        shell: bash
+      - name: Compress artifacts
+        run: tar -czf ./package.tar.gz ./publish/**
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2
         with:
           name: Package
-          path: ./publish
-      - name: Inject ENV
-        run: echo $PRODSSH >> /root/cert
-      - name: Deploy
-        run: ./deploy.sh
+          path: ./package.tar.gz
+      - name: Deploy to Server
+        uses: easingthemes/ssh-deploy@v2.1.1
+        env:
+            SSH_PRIVATE_KEY: ${{ secrets.PRODSSH }}
+            ARGS: "-rltgoDzvO --delete"
+            SOURCE: "./package.tar.gz"
+            REMOTE_HOST: ${{ secrets.PROD_HOSTNAME }}
+            REMOTE_USER: ${{ secrets.PROD_USERNAME }}
+            REMOTE_PORT: ${{ secrets.PROD_PORT }}
+            TARGET: /tmp  
