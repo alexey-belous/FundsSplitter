@@ -56,7 +56,8 @@ module Entry =
 
         Async.Start(server, cts.Token)
 
-        Console.ReadKey true |> ignore
+        let autoEvent = new AutoResetEvent(false);
+        autoEvent.WaitOne() |> ignore
 
         Bot.Lifecycle.stopBot botConfig
         |> Async.RunSynchronously
