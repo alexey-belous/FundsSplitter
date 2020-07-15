@@ -1,9 +1,8 @@
 name: Deploy
 
 on:
-  push:
-    branches: [ ]
-
+  deployment:
+  
 jobs:
   build:
 
@@ -21,3 +20,7 @@ jobs:
       run: echo $PROD_CONFIG >> ./publish/app/config.json
     - name: Inject ENV
       run: echo $PROD_ENV >> ./publish/.env
+    - name: Inject ENV
+      run: echo $PRODSSH >> /root/cert
+    - name: Deploy
+      run: ./deploy.sh
