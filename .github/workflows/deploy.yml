@@ -29,19 +29,19 @@ jobs:
         shell: bash
       - name: Compress artifacts
         run: tar -czf ./package.tar.gz ./publish/**
-      - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: Package
-          path: ./package.tar.gz
+#      - name: Upload a Build Artifact
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: Package
+#          path: ./package.tar.gz
       - name: Stop app
-        uses: appleboy/ssh-action@master
+        uses: garygrossgarten/github-action-ssh@release
         with:
           host: ${{ secrets.PROD_HOSTNAME }}
           username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ secrets.PRODSSH }}
+          privateKey: ${{ secrets.PRODSSH }}
           port: ${{ secrets.PORT }}
-          script: 'cd /app && docker-compose down'
+          command: 'cd /app && docker-compose down'
       - name: Deploy to Server
         uses: easingthemes/ssh-deploy@v2.1.1
         env:
@@ -53,10 +53,10 @@ jobs:
             REMOTE_PORT: ${{ secrets.PROD_PORT }}
             TARGET: /app
       - name: Start app
-        uses: appleboy/ssh-action@master
+        uses: garygrossgarten/github-action-ssh@release
         with:
           host: ${{ secrets.PROD_HOSTNAME }}
           username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ secrets.PRODSSH }}
+          privateKey: ${{ secrets.PRODSSH }}
           port: ${{ secrets.PORT }}
           script: 'cd /app && docker-compose up -d'
