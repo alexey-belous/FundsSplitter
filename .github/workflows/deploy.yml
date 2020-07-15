@@ -34,6 +34,14 @@ jobs:
         with:
           name: Package
           path: ./package.tar.gz
+      - name: Stop app
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_HOSTNAME }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PRODSSH }}
+          port: ${{ secrets.PORT }}
+          script: 'cd /app && docker-compose down'
       - name: Deploy to Server
         uses: easingthemes/ssh-deploy@v2.1.1
         env:
@@ -43,4 +51,12 @@ jobs:
             REMOTE_HOST: ${{ secrets.PROD_HOSTNAME }}
             REMOTE_USER: ${{ secrets.PROD_USERNAME }}
             REMOTE_PORT: ${{ secrets.PROD_PORT }}
-            TARGET: /tmp  
+            TARGET: /app
+      - name: Start app
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_HOSTNAME }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PRODSSH }}
+          port: ${{ secrets.PORT }}
+          script: 'cd /app && docker-compose up -d'
