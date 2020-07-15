@@ -59,4 +59,4 @@ jobs:
           username: ${{ secrets.PROD_USERNAME }}
           privateKey: ${{ secrets.PRODSSH }}
           port: 1122
-          script: 'cd /app && docker-compose up -d'
+          command: 'cd /app && tar -zxvf ./package.tar.gz && cp -r ./publish/** ./ && rm -rf ./publish && rm -rf ./package.tar.gz && docker-compose up -d'
