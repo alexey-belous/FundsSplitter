@@ -8,7 +8,6 @@
 ### Required software
 Dotnet core 2.1
 
-
 ### Development
 To start an app go to the `./src/FundsSplitter.App` folder and run `dotnet run .` command from your terminal.
 
