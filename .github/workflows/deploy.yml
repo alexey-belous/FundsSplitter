@@ -23,7 +23,7 @@ jobs:
           PROD_CONFIG: ${{secrets.PROD_CONFIG}}
         shell: bash
       - name: Inject ENV
-        run: "echo $PROD_ENV >> ./publish/.env"
+        run: "echo $PROD_ENV >> ./publish/env"
         env:
           PROD_ENV: ${{secrets.PROD_ENV}}
         shell: bash
@@ -54,5 +54,4 @@ jobs:
           username: ${{ secrets.PROD_USERNAME }}
           privateKey: ${{ secrets.PRODSSH }}
           port: 1122
-#          command: "cd /app && tar -zxvf ./package.tar.gz && cp -r ./publish/** ./ && rm -rf ./publish && rm -rf ./package.tar.gz && docker-compose up -d"
-          command: "cd /app && tar -zxvf ./package.tar.gz && cp -r ./publish/** ./ && rm -rf ./publish && docker-compose up -d"
+          command: "cd /app && tar -zxvf ./package.tar.gz && cp -r ./publish/** ./ && rm -rf ./publish && rm -rf ./package.tar.gz && mv ./env ./.env && docker-compose up -d"
