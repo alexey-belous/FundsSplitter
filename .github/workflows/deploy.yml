@@ -1,31 +1,31 @@
 name: Deploy
 
 on:
-  deployment:
-  
+  push: [master]
+  # deployment:
+
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.1.101
-    - name: Publish
-      run: ./publish.sh
-    - name: Inject config.json
-      run: echo $PROD_CONFIG >> ./publish/app/config.json
-    - name: Inject ENV
-      run: echo $PROD_ENV >> ./publish/.env
-    - name: Upload a Build Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: Package
-        path: ./publish
-    - name: Inject ENV
-      run: echo $PRODSSH >> /root/cert
-    - name: Deploy
-      run: ./deploy.sh
+      - uses: actions/checkout@v2
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.101
+      - name: Publish
+        run: ./publish.sh
+      - name: Inject config.json
+        run: echo $PROD_CONFIG >> ./publish/app/config.json
+      - name: Inject ENV
+        run: echo $PROD_ENV >> ./publish/.env
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Package
+          path: ./publish
+      - name: Inject ENV
+        run: echo $PRODSSH >> /root/cert
+      - name: Deploy
+        run: ./deploy.sh
