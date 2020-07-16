@@ -160,7 +160,7 @@ module PaymentHandler =
                 (tx', tx)
                 |> Ok
 
-            let! res = 
+            return!
                 msg.Chat.Id
                 |> tryFetchChat
                 |> AsyncResult.bind (parseText lang msg)
@@ -168,8 +168,6 @@ module PaymentHandler =
                 |> AsyncResult.bind addTx
                 |> AsyncResult.bind (composeAnswer lang)
                 |> Async.bind (sendAnswer client msg cts)
-
-            return ()
         } |> Some
 
     let updateHandlerFunction botContext (update: Update) = 
@@ -198,7 +196,7 @@ module PaymentHandler =
                 (tx', tx)
                 |> Ok
 
-            let! res = 
+            return!
                 msg.Chat.Id
                 |> tryFetchChat
                 |> AsyncResult.bind (parseText lang msg)
@@ -206,6 +204,4 @@ module PaymentHandler =
                 |> AsyncResult.bind replaceTx
                 |> AsyncResult.bind (composeAnswer lang)
                 |> Async.bind (sendAnswer client msg cts)
-
-            return ()
         } |> Some

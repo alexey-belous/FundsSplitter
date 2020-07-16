@@ -7,6 +7,7 @@ module UpdatesHandler =
     open FundsSplitter.Core.Bot.Types
     open FundsSplitter.Core.Bot.Message
     open FundsSplitter.Core.Bot.Handlers
+    open FundsSplitter.Core.Bot.Analytics
 
     open Microsoft.FSharpLu.Json
     open Telegram.Bot
@@ -80,7 +81,10 @@ module UpdatesHandler =
 
             match routes context update with
             | Some h -> 
-                do! h ()
+                let! res = h ()
+                do! updateRequestAnalytics (Some res) context update
                 return String.Empty
-            | None -> return String.Empty
+            | None -> 
+                do! updateRequestAnalytics None context update
+                return String.Empty
         }

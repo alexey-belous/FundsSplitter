@@ -13,6 +13,8 @@
     <Compile Include="Transactions/Types.fs" />
     <Compile Include="Transactions/CrudOperations.fs" />
     <Compile Include="Transactions/ProcessingLogic.fs" />
+    <Compile Include="Analytics/Types.fs" />
+    <Compile Include="Analytics/Storage.fs" />
     <Compile Include="Bot/Types.fs" />
     <Compile Include="Bot/Message.fs" />
     <Compile Include="Bot/Handlers/HelpHandler.fs" />
@@ -21,6 +23,7 @@
     <Compile Include="Bot/Handlers/PaymentHandler.fs" />
     <Compile Include="Bot/Handlers/SettleUpHandler.fs" />
     <Compile Include="Bot/Lifecycle.fs" />
+    <Compile Include="Bot/Analytics.fs" />
     <Compile Include="Bot/UpdatesHandler.fs" />
   </ItemGroup>
 

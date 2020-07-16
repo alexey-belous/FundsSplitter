@@ -52,12 +52,10 @@ module DebtsHandler =
                 |> List.map (fun d -> DebtsAnswerRow (formatUser d.From) (formatUser d.To) d.Amount)
                 |> String.concat "\n"
 
-            let! res = 
+            return!
                 msg.Chat.Id
                 |> tryFetchChat
                 |> AsyncResult.map (fun chat -> chat |> createInitialDebtsMatrix |> getDebts |> (addSettlingUpsToDebts chat))
                 |> AsyncResult.map formatDebts
                 |> Async.bind (sendAnswer client msg cts)
-
-            return ()
         } |> Some
