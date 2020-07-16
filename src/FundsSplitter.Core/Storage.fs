@@ -7,13 +7,17 @@ module Storage =
     type CollectionsType = 
         {
             Chats: string
+            MessagesAnalytics: string
+            UsersAnalytics: string
         }
 
     let Collections = 
         {
             Chats = "Chats"
+            MessagesAnalytics = "MessagesAnalytics"
+            UsersAnalytics = "UsersAnalytics"
         }
-    let collections = [Collections.Chats]
+    let collections = [Collections.Chats; Collections.MessagesAnalytics; Collections.UsersAnalytics]
 
     type Storage = 
         {
