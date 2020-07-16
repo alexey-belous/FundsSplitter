@@ -11,4 +11,10 @@ module Types =
             ProcessedMessagesCount: int
             UnsupportedMessagesCount: int
         }
+
+    type DailyUsersAnalytics = 
+        {
+            Day: DateTime
+            UserIds: int list
+        }
         

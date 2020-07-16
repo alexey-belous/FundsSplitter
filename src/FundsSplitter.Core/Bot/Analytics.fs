@@ -24,8 +24,9 @@ module Analytics =
             let today = (System.DateTime.Today.ToUniversalTime().Date)
             let isDirectMessage = msg.Chat.Type = ChatType.Private
             let isMessageProcessed = handlerResult.IsSome && handlerResult.Value |> isError |> not
+
             let messagesAnalytics = context.Storage.Database.GetCollection(Collections.MessagesAnalytics)
-            let! record = tryFindRecord messagesAnalytics cts today
+            let! record = tryFindDailyMessagesRecord messagesAnalytics cts today
             match record with
             | Some r -> 
                 { r with 
@@ -41,6 +42,21 @@ module Analytics =
                     ProcessedMessagesCount = (if isMessageProcessed then 1 else 0)
                     UnsupportedMessagesCount = (if not isMessageProcessed then 1 else 0) }
                 |> upsertDailyMessagesRecord messagesAnalytics cts |> ignore
+
+            let usersAnalytics = context.Storage.Database.GetCollection(Collections.UsersAnalytics)
+            let! usersRecord = tryFindDailyUsersRecord usersAnalytics cts today
+            match usersRecord with
+            | Some r -> 
+                { r with
+                    UserIds = msg.From.Id :: r.UserIds |> List.distinct
+                }
+                |> upsertDailyUsersRecord usersAnalytics cts |> ignore
+            | None ->
+                {
+                    Day = today
+                    UserIds = [msg.From.Id]
+                } |> upsertDailyUsersRecord usersAnalytics cts |> ignore
+
             return ()
         else
             return ()
