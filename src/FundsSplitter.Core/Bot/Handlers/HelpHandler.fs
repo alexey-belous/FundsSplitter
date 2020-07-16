@@ -24,6 +24,8 @@ Examples:
 
 - `/payback @user1 100` - Add payback of a user (`/payback @user1 10` - @user1 gave 10 UAH to the author of the message).
 - `/debts` - Shows all debts.
+
+If you found a bug or have a suggestion, feel free to write it here: https://github.com/alexey-belous/FundsSplitter/issues.
     """
 
     let helpMessageRu = """
@@ -41,6 +43,8 @@ Examples:
 
 - `/payback @user1 100` - Добавляет возврат средств пользователя в группу (`/payback @user1 10` - @user1 вернул 10 грн автору сообщения).
 - `/debts` - Показывает все долги в группе.
+
+Если у вы нашли баг или у вас есть предложение по улучшению, можете написать это здесь: https://github.com/alexey-belous/FundsSplitter/issues.
     """
 
     let helpMessage (lang: LanguageCode) = 
