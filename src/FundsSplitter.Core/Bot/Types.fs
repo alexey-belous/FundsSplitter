@@ -21,4 +21,4 @@ module Types =
             CancellationToken: CancellationToken
         }
 
-    type UpdateHandler = BotContext -> Update -> (unit -> Async<unit>) option
+    type UpdateHandler = BotContext -> Update -> (unit -> Async<Result<unit, unit>>) option

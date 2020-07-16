@@ -141,7 +141,7 @@ module SettleUpHandler =
                 SettlingUpAnswer lang (formatUser tx.User) (formatUser tx.SplittingSubset.[0]) tx.Amount
                 |> Ok
 
-            let! res = 
+            return! 
                 msg.Chat.Id
                 |> tryFetchChat
                 |> AsyncResult.bind (parseText lang msg)
@@ -150,8 +150,6 @@ module SettleUpHandler =
                 |> AsyncResult.bind saveTx
                 |> AsyncResult.bind composeAnswer
                 |> Async.bind (sendAnswer client msg cts)
-
-            return ()
         } |> Some
 
     let updateHandlerFunction botContext (update: Update) = 
@@ -190,7 +188,7 @@ module SettleUpHandler =
                 SettlingUpAnswer lang (formatUser tx.User) (formatUser tx.SplittingSubset.[0]) tx.Amount
                 |> Ok
 
-            let! res = 
+            return! 
                 msg.Chat.Id
                 |> tryFetchChat
                 |> AsyncResult.bind (parseText lang msg)
@@ -199,6 +197,4 @@ module SettleUpHandler =
                 |> AsyncResult.bind saveTx
                 |> AsyncResult.bind composeAnswer
                 |> Async.bind (sendAnswer client msg cts)
-
-            return ()
         } |> Some

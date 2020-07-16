@@ -88,11 +88,9 @@ Group contain following members:
                     return Ok responseMsg
                 }
 
-            let! res = 
+            return!
                 msg
                 |> (validateMessage lang)
                 |> AsyncResult.fromResult processCommand
                 |> Async.bind (sendAnswer client msg cts)
-
-            return ()
         } |> Some

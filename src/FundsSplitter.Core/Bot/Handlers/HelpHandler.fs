@@ -62,5 +62,5 @@ If you found a bug or have a suggestion, feel free to write it here: https://git
             let! _ =  
                 client.SendTextMessageAsync(new ChatId(msg.Chat.Id), (helpMessage lang), Enums.ParseMode.Markdown, true, false, msg.MessageId, null, cts)
                 |> Async.AwaitTask
-            return ()
+            return Ok()
         } |> Some

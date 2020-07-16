@@ -40,8 +40,9 @@ module Message =
             |> Async.AwaitTask
 
         match res with
-        | Ok r -> answer r
-        | Error e -> answer e
+        | Ok r ->   answer r
+                    |> Async.map (fun _ -> Ok())
+        | Error e ->    answer e |> Async.map (fun _ -> Error ())
 
     let sendAnswer (client: TelegramBotClient) (msg: Message) cts res = 
         sendAnswerWithParseMode (Enums.ParseMode.Default) client msg cts res
