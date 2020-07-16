@@ -51,6 +51,7 @@ module UpdatesHandler =
         choose [
             commandHandler "/help" HelpHandler.handlerFunction
             botAddedToGroupHandler HelpHandler.handlerFunction
+            commandHandler "/start" HelpHandler.handlerFunction
 
             commandHandler "/join" JoinHandler.handlerFunction
             commandHandler "/debts" DebtsHandler.handlerFunction
