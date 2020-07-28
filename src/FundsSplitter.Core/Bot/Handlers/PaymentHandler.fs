@@ -17,28 +17,27 @@ module PaymentHandler =
 
     let ChatNotFoundErrorEn = "There's no Funds Splitter group in this chat."
     let MessageDoesntContainAmountEn = "I couldn't find amount in your message."
-    let NotAllMentionedUsersWasAddedToGroupEn = "Not all mentioned users was added to the splitting group."
     let AmountMustBePositiveEn = "Amount value must be possitive."
     let YouAreNotInTheGroupEn = "You aren't in the Funds Splitter group. To joint the group send me a /join command."
 
-    let PayCommandAnswerEn amount description splittingSubset = 
+    let PayCommandAnswerEn amount description = 
         sprintf 
-            "Amount: %M UAH.\n%s\nSplit between: %s." 
+            "Amount: %M UAH.\n%s\nChoose members to split between:" 
             amount
             (if description |> String.IsNullOrEmpty then String.Empty else description |> sprintf "Description: `%s`." )
-            (splittingSubset |> List.map formatUser |> joinStr ", ")
 
     let ChatNotFoundErrorRu = "В этом чате нет группы Funds Splitter."
     let MessageDoesntContainAmountRu = "Я не могу найти сумму в вашем сообщении."
-    let NotAllMentionedUsersWasAddedToGroupRu = "Некоторые из упомянутых пользователей не были добавлены в группу Funds Splitter."
     let AmountMustBePositiveRu = "Значение суммы должно быть положительным."
     let YouAreNotInTheGroupRu = "Вы не добавленны в группу Funds Splitter. Чтобы присоедениться к группе отправьте мне комманду /join."
-    let PayCommandAnswerRu amount description splittingSubset = 
+    let PayCommandAnswerRu amount description = 
         sprintf 
-            "Сумма: %M грн.\n%s\nРазделена между: %s." 
+            "Сумма: %M грн.\n%s\nМежду кем разделить?" 
             amount
             (if description |> String.IsNullOrEmpty then String.Empty else description |> sprintf "Описание: `%s`." )
-            (splittingSubset |> List.map formatUser |> joinStr ", ")
+
+    let EverybodyButtonEn = "Everybody"
+    let EverybodyButtonRu = "На всех"
 
     let ChatNotFoundError = function
         | En -> ChatNotFoundErrorEn
@@ -46,9 +45,6 @@ module PaymentHandler =
     let MessageDoesntContainAmount = function
         | En -> MessageDoesntContainAmountEn
         | Ru -> MessageDoesntContainAmountRu
-    let NotAllMentionedUsersWasAddedToGroup = function
-        | En -> NotAllMentionedUsersWasAddedToGroupEn
-        | Ru -> NotAllMentionedUsersWasAddedToGroupRu
     let AmountMustBePositive = function
         | En -> AmountMustBePositiveEn
         | Ru -> AmountMustBePositiveRu
@@ -59,13 +55,16 @@ module PaymentHandler =
     let PayCommandAnswer = function
         | En -> PayCommandAnswerEn
         | Ru -> PayCommandAnswerRu
+
+    let EverybodyButton = function
+        | En -> EverybodyButtonEn
+        | Ru -> EverybodyButtonRu
     
 
     type TxRaw = 
         {
             Chat: FundsSplitter.Core.Transactions.Types.Chat
             Description: string
-            Mentions: string[]
             Amount: decimal
         }
 
@@ -80,26 +79,11 @@ module PaymentHandler =
             if amount' <= 0M then lang |> AmountMustBePositive |> Error
             else
 
-            let mentions = msg |> extractMentions
-            let description = 
-                mentions 
-                |> Array.fold 
-                    (fun acc i -> acc.Replace(i, String.Empty): string)
-                    (text
-                    .Replace(a, String.Empty)
-                    .Replace(extractCmd msg |> Option.defaultValue String.Empty, String.Empty))
-                |> replaceSpaces
-                |> trim
             {
                 Chat = chat
-                Description = description
+                Description = String.Empty // TODO: Add handling of description here
                 Amount = amount'
-                Mentions = mentions
             } |> Ok
-
-    let composeAnswer lang (tx': Tx, tx: TxRaw) = 
-        PayCommandAnswer lang tx'.Amount tx.Description tx'.SplittingSubset
-        |> Ok
 
     let createTx lang (msg: Message) tx = 
         let author' = tx.Chat.KnownUsers |> List.tryFind (fun u -> u.Id = msg.From.Id)
@@ -107,20 +91,6 @@ module PaymentHandler =
         then lang |> YouAreNotInTheGroup |> Error
         else
         let author = author'.Value
-        let splittingSubset = 
-            match tx.Mentions with
-            | [||] -> tx.Chat.KnownUsers
-            | _ ->  tx.Mentions 
-                    |> List.ofArray 
-                    |> List.map (fun username -> 
-                        tx.Chat.KnownUsers 
-                        |> List.tryFind (fun u -> sprintf "@%s" u.Username = username))
-                    |> List.filter (fun u -> u.IsSome)
-                    |> List.map (fun u -> u.Value)
-        
-        if tx.Mentions.Length > 0 && tx.Mentions.Length <> splittingSubset.Length
-        then lang |> NotAllMentionedUsersWasAddedToGroup |> Error
-        else
         
         let tx' = 
             {
@@ -133,9 +103,18 @@ module PaymentHandler =
                 }
                 Type = Payment
                 Amount = tx.Amount
-                SplittingSubset = splittingSubset
+                SplittingSubset = []
             }
         (tx, tx') |> Ok
+
+    let divideByRows rowSize list = 
+        list
+        |> List.fold (fun (acc: 'a list list) e -> 
+                        if acc.[0].Length = rowSize then
+                            [e] :: acc
+                        else
+                            (e :: acc.[0]) :: (acc |> List.skip 1)
+                         ) [[]]
 
     let handlerFunction botContext (update: Update) = 
         fun () -> async {
@@ -160,19 +139,46 @@ module PaymentHandler =
                 (tx', tx)
                 |> Ok
 
+            let sendReplyMessage lang (res: Result<(Tx*TxRaw), string> ) = async {
+                match res with
+                | Error e -> return! sendAnswer client msg cts (Error e)
+                | Ok (tx': Tx, tx: TxRaw) ->
+                let txt = PayCommandAnswer lang tx'.Amount tx.Description
+
+                let userButtons = 
+                    tx.Chat.KnownUsers 
+                    |> List.map (fun u ->
+                        let btn = ReplyMarkups.InlineKeyboardButton()
+                        btn.Text <- sprintf "❌ %s" (formatUser u) // ❌ ✅
+                        btn.CallbackData <- sprintf "toggle_splitting_subset#%s" (u.Id.ToString())
+                        btn)
+
+                let everybodyButton = ReplyMarkups.InlineKeyboardButton()
+                everybodyButton.Text <- EverybodyButton lang
+                everybodyButton.CallbackData <- "toggle_splitting_subset#everybody" 
+
+                let rows = 
+                    (divideByRows 2 userButtons) @ [[everybodyButton]]
+                    |> Seq.map (Seq.ofList)
+
+                let replyMarkup = ReplyMarkups.InlineKeyboardMarkup(rows)
+                let! _ =  client.SendTextMessageAsync(new ChatId(msg.Chat.Id), txt, Enums.ParseMode.Default, true, false, msg.MessageId, replyMarkup, cts)
+                            |> Async.AwaitTask
+                return Ok ()
+            }
+
             return!
                 msg.Chat.Id
                 |> tryFetchChat
                 |> AsyncResult.bind (parseText lang msg)
                 |> AsyncResult.bind (createTx lang msg)
                 |> AsyncResult.bind addTx
-                |> AsyncResult.bind (composeAnswer lang)
-                |> Async.bind (sendAnswer client msg cts)
+                |> Async.bind (sendReplyMessage lang)
         } |> Some
 
-    let updateHandlerFunction botContext (update: Update) = 
+    let replyCallbackHandlerFunction botContext (update: Update) = 
         fun () -> async {
-            let msg = update.EditedMessage
+            let msg = update.CallbackQuery.Message
             let client = botContext.BotClient
             let db = botContext.Storage.Database
             let chats = db.GetCollection(Collections.Chats)
@@ -181,27 +187,70 @@ module PaymentHandler =
 
             let tryFetchChat chatId = async {
                 let! chat = tryFindChat chats cts chatId
-                match chat with
-                | Some c -> return Ok c
-                | None -> return lang |> ChatNotFoundError |> Error
+                return chat.Value
             }
 
-            let replaceTx (tx, tx': Tx) = 
-                let oldTx = tx.Chat.Transactions |> List.find (fun t -> t.Message.Id = msg.MessageId)
-                let newTx = { tx' with Id = oldTx.Id }
+            let toggleUser (chat: Transactions.Types.Chat) = 
+                let tx = chat.Transactions |> List.find (fun tx -> tx.Message.Id = update.CallbackQuery.Message.ReplyToMessage.MessageId)
 
-                tx'
-                |> editTransaction tx.Chat
+                let parsedPayload = update.CallbackQuery.Data.Split('#').[1]
+                if parsedPayload = "everybody" 
+                then //Everybody case
+                    if tx.SplittingSubset.Length = chat.KnownUsers.Length then
+                        ({ tx with SplittingSubset = [] }, chat)
+                    else
+                    ({ tx with SplittingSubset = chat.KnownUsers }, chat)
+
+                else // Particular member case
+                let userId = Int32.Parse(update.CallbackQuery.Data.Split('#').[1])
+                let user = chat.KnownUsers |> List.find (fun u -> u.Id = userId)
+                if tx.SplittingSubset |> List.exists (fun u -> u.Id = userId) then
+                    ({ tx with SplittingSubset = tx.SplittingSubset |> List.filter (fun u -> u.Id <> user.Id)}, chat)
+                else
+                    ({ tx with SplittingSubset = user :: tx.SplittingSubset }, chat)
+
+            let saveTx (tx, chat) =  
+                tx
+                |> editTransaction chat
                 |> upsertChat cts chats |> ignore
-                (tx', tx)
-                |> Ok
+                (tx, chat)
 
-            return!
+            let sendReplyAnswer (tx, chat) = async {
+                let userButtons = 
+                    chat.KnownUsers 
+                    |> List.map (fun u ->
+                        let isChecked = 
+                            if tx.SplittingSubset |> List.exists (fun u' -> u'.Id = u.Id)
+                                        then "✅"
+                                        else "❌"
+
+                        let btn = ReplyMarkups.InlineKeyboardButton()
+                        btn.Text <- sprintf "%s %s" isChecked (formatUser u) // ❌ ✅
+                        btn.CallbackData <- sprintf "toggle_splitting_subset#%s" (u.Id.ToString())
+                        btn)
+
+                let everybodyButton = ReplyMarkups.InlineKeyboardButton()
+                everybodyButton.Text <- EverybodyButton lang
+                everybodyButton.CallbackData <- "toggle_splitting_subset#everybody" 
+
+                let rows = 
+                    (divideByRows 2 userButtons) @ [[everybodyButton]]
+                    |> Seq.map (Seq.ofList)
+
+                let replyMarkup = ReplyMarkups.InlineKeyboardMarkup(rows)
+
+                let! _ = client.EditMessageReplyMarkupAsync(ChatId msg.Chat.Id, msg.MessageId, replyMarkup, cts)
+                            |> Async.AwaitTask
+
+                return ()
+            }
+
+            let! res = 
                 msg.Chat.Id
                 |> tryFetchChat
-                |> AsyncResult.bind (parseText lang msg)
-                |> AsyncResult.bind (createTx lang msg)
-                |> AsyncResult.bind replaceTx
-                |> AsyncResult.bind (composeAnswer lang)
-                |> Async.bind (sendAnswer client msg cts)
+                |> Async.map toggleUser
+                |> Async.map saveTx
+                |> Async.bind sendReplyAnswer
+
+            return Ok res
         } |> Some
