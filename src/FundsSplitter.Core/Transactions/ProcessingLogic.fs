@@ -44,7 +44,7 @@ module ProcessingLogic =
 
         let userDebts = 
             chat.Transactions 
-            |> List.filter (fun tx -> tx.Type = Payment)
+            |> List.filter (fun tx -> tx.Type = Payment && tx.SplittingSubset.Length > 0)
             |> List.map calculateTransactionDebts
             |> calculateUserDebts (chat.KnownUsers |> List.map (fun u -> (u, 0.0m)))
 

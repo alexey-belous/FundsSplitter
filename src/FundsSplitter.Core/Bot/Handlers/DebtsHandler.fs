@@ -49,7 +49,7 @@ module DebtsHandler =
                     NoDebtsMessage lang
                 else
                 debts
-                |> List.map (fun d -> DebtsAnswerRow (formatUser d.From) (formatUser d.To) d.Amount)
+                |> List.map (fun d -> DebtsAnswerRow (formatUser d.From) (formatUser d.To) (System.Math.Round(d.Amount, 2)))
                 |> String.concat "\n"
 
             return!
