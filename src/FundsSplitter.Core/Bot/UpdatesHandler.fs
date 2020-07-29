@@ -21,7 +21,7 @@ module UpdatesHandler =
 
     let commandHandler cmdName (handler: UpdateHandler) context (update: Update) = 
         let msg = update.Message
-        if msg <> null && msg.Entities <> null then 
+        if msg <> null && msg.Entities <> null && msg.ForwardFrom = null then 
             let cmd = msg |> extractCmd
             match cmd with
             | Some c when c = cmdName -> 
@@ -48,6 +48,15 @@ module UpdatesHandler =
             handler context update
         else None
 
+    let replyCallbackHandler cmdName (handler: UpdateHandler) (context: BotContext) (update: Update) = 
+        if update.CallbackQuery <> null then
+            let rawPayload = update.CallbackQuery.Data
+            let parsed = rawPayload.Split('#')
+            if parsed.Length > 0 && parsed.[0] = cmdName then
+                handler context update
+            else None
+        else None
+
     let routes = 
         choose [
             commandHandler "/help" HelpHandler.handlerFunction
@@ -58,7 +67,8 @@ module UpdatesHandler =
             commandHandler "/debts" DebtsHandler.handlerFunction
 
             commandHandler "/pay" PaymentHandler.handlerFunction
-            editedCommandHandler "/pay" PaymentHandler.updateHandlerFunction
+            replyCallbackHandler "toggle_splitting_subset" PaymentHandler.replyToggleUser
+            replyCallbackHandler "delete_tx" PaymentHandler.replyDeleteTx
 
             commandHandler "/payback" SettleUpHandler.handlerFunction 
             editedCommandHandler "/payback" SettleUpHandler.updateHandlerFunction

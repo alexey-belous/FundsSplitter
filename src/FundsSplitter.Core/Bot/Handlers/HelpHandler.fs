@@ -17,10 +17,7 @@ Then, each user must send /join command to joint the group.
 - `/help` - Shows a description of commands and how bot works.
 - `/join` - Joins user to a **splitting group**.
 
-- `/pay 100` - Adds payment of particular user. 
-Examples: 
--- `/pay 10 description (optional)...` adds 10 UAH and split them between everyone.
--- `/pay 10 @user1 @user2 description (optional)...` adds 10 UAH and split them between @user1 and @user2.
+- `/pay 100 description` - Adds payment of particular user. 
 
 - `/payback @user1 100` - Add payback of a user (`/payback @user1 10` - @user1 gave 10 UAH to the author of the message).
 - `/debts` - Shows all debts.
@@ -36,10 +33,7 @@ If you found a bug or have a suggestion, feel free to write it here: https://git
 - `/help` - показывает описание команд и то, как работает бот.
 - `/join` - Добавляет пользователя к группе.
 
-- `/pay 100` - Добавляет платеж пользователя, отправившего сообщение 
-Примеры: 
--- `/pay 10 описание (необязательное)...` добавляет 10 грн и разделяет их между всеми участниками группы.
--- `/pay 10 @user1 @user2 описание (необязательное)...` добавляет 10 грн и разделяет их между пользователями @user1 и @user2.
+- `/pay 100 описание` - Добавляет платеж пользователя, отправившего сообщение 
 
 - `/payback @user1 100` - Добавляет возврат средств пользователя в группу (`/payback @user1 10` - @user1 вернул 10 грн автору сообщения).
 - `/debts` - Показывает все долги в группе.

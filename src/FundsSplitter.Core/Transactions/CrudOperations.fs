@@ -17,6 +17,10 @@ module CrudOperations =
             if tx'.Id = tx.Id then tx else tx'
         { chat with Transactions = chat.Transactions |> List.map replace }
 
+    let deleteTransaction chat (tx: Tx) = 
+        let txsToKeep (tx': Tx) = tx'.Id <> tx.Id
+        { chat with Transactions = chat.Transactions |> List.filter txsToKeep }
+
     let upsertUser (user: User) chat = 
         match chat.KnownUsers |> List.tryFind (fun u -> u.Id = user.Id) with
         | Some u -> { chat with KnownUsers = chat.KnownUsers |> List.map (fun u -> if u.Id = user.Id then user else u) }

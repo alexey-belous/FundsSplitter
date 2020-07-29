@@ -16,10 +16,14 @@ module Message =
         | _ -> Ru
 
     let getLanguageCode (update: Update) = 
-        let msg = if update.Message <> null then update.Message else if update.EditedMessage <> null then update.EditedMessage else null
-        if msg <> null then
-            msg.From.LanguageCode |> (|LanguageCode|)
-        else En
+        let messages = [
+            (if update.Message <> null then Some update.Message else None);
+            (if update.EditedMessage <> null then Some update.EditedMessage else None);
+            (if update.CallbackQuery <> null then Some update.CallbackQuery.Message else None);
+        ]
+        match messages |> List.tryFind Option.isSome with
+        | Some msg -> msg.Value.From.LanguageCode |> (|LanguageCode|)
+        | None -> En
 
     let exctractEntitiesText entityType (message: Message) = 
         message.Entities 
@@ -40,9 +44,11 @@ module Message =
             |> Async.AwaitTask
 
         match res with
-        | Ok r ->   answer r
-                    |> Async.map (fun _ -> Ok())
+        | Ok r when r <> String.Empty ->   
+                        answer r
+                        |> Async.map (fun _ -> Ok())
         | Error e ->    answer e |> Async.map (fun _ -> Error ())
+        | _ -> async { return Ok () }
 
     let sendAnswer (client: TelegramBotClient) (msg: Message) cts res = 
         sendAnswerWithParseMode (Enums.ParseMode.Default) client msg cts res
