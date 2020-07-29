@@ -21,7 +21,7 @@ module UpdatesHandler =
 
     let commandHandler cmdName (handler: UpdateHandler) context (update: Update) = 
         let msg = update.Message
-        if msg <> null && msg.Entities <> null then 
+        if msg <> null && msg.Entities <> null && msg.ForwardFrom = null then 
             let cmd = msg |> extractCmd
             match cmd with
             | Some c when c = cmdName -> 
