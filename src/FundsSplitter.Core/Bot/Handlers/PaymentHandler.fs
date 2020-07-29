@@ -39,6 +39,12 @@ module PaymentHandler =
     let EverybodyButtonEn = "Everybody"
     let EverybodyButtonRu = "На всех"
 
+    let DeleteButtonEn = "🗑 Удалить"
+    let DeleteButtonRu = "🗑 Удалить"
+
+    let DeletedMessageEn = "Deleted..."
+    let DeletedMessageRu = "Удалено..."
+
     let ChatNotFoundError = function
         | En -> ChatNotFoundErrorEn
         | Ru -> ChatNotFoundErrorRu
@@ -59,6 +65,14 @@ module PaymentHandler =
     let EverybodyButton = function
         | En -> EverybodyButtonEn
         | Ru -> EverybodyButtonRu
+
+    let DeleteButton = function
+        | En -> DeleteButtonEn
+        | Ru -> DeleteButtonRu
+
+    let DeletedMessage = function
+        | En -> DeletedMessageEn
+        | Ru -> DeletedMessageRu
     
 
     type TxRaw = 
@@ -116,6 +130,30 @@ module PaymentHandler =
                             (e :: acc.[0]) :: (acc |> List.skip 1)
                          ) [[]]
 
+    let generateReplyMarkup lang users = 
+        let userButtons = 
+            users
+            |> List.map (fun (u, isChecked) ->
+                let icon = if isChecked then "✅" else "❌"
+                let btn = ReplyMarkups.InlineKeyboardButton()
+                btn.Text <- sprintf "%s %s" icon (formatUser u) // ❌ ✅
+                btn.CallbackData <- sprintf "toggle_splitting_subset#%s" (u.Id.ToString())
+                btn)
+
+        let everybodyButton = ReplyMarkups.InlineKeyboardButton()
+        everybodyButton.Text <- EverybodyButton lang
+        everybodyButton.CallbackData <- "toggle_splitting_subset#everybody" 
+
+        let deleteBtn = ReplyMarkups.InlineKeyboardButton()
+        deleteBtn.Text <- DeleteButton lang
+        deleteBtn.CallbackData <- "delete_tx"
+
+        let rows = 
+            (divideByRows 2 userButtons) @ [[everybodyButton]] @ [[deleteBtn]]
+            |> Seq.map (Seq.ofList)
+
+        ReplyMarkups.InlineKeyboardMarkup(rows)
+
     let handlerFunction botContext (update: Update) = 
         fun () -> async {
             let msg = update.Message
@@ -145,23 +183,12 @@ module PaymentHandler =
                 | Ok (tx': Tx, tx: TxRaw) ->
                 let txt = PayCommandAnswer lang tx'.Amount tx.Description
 
-                let userButtons = 
-                    tx.Chat.KnownUsers 
-                    |> List.map (fun u ->
-                        let btn = ReplyMarkups.InlineKeyboardButton()
-                        btn.Text <- sprintf "❌ %s" (formatUser u) // ❌ ✅
-                        btn.CallbackData <- sprintf "toggle_splitting_subset#%s" (u.Id.ToString())
-                        btn)
+                let replyMarkup = 
+                    tx.Chat.KnownUsers
+                    |> List.map (fun u -> (u, false))
+                    |> generateReplyMarkup lang
 
-                let everybodyButton = ReplyMarkups.InlineKeyboardButton()
-                everybodyButton.Text <- EverybodyButton lang
-                everybodyButton.CallbackData <- "toggle_splitting_subset#everybody" 
-
-                let rows = 
-                    (divideByRows 2 userButtons) @ [[everybodyButton]]
-                    |> Seq.map (Seq.ofList)
-
-                let replyMarkup = ReplyMarkups.InlineKeyboardMarkup(rows)
+                
                 let! _ =  client.SendTextMessageAsync(new ChatId(msg.Chat.Id), txt, Enums.ParseMode.Default, true, false, msg.MessageId, replyMarkup, cts)
                             |> Async.AwaitTask
                 return Ok ()
@@ -176,7 +203,7 @@ module PaymentHandler =
                 |> Async.bind (sendReplyMessage lang)
         } |> Some
 
-    let replyCallbackHandlerFunction botContext (update: Update) = 
+    let replyToggleUser botContext (update: Update) = 
         fun () -> async {
             let msg = update.CallbackQuery.Message
             let client = botContext.BotClient
@@ -216,28 +243,10 @@ module PaymentHandler =
                 (tx, chat)
 
             let sendReplyAnswer (tx, chat) = async {
-                let userButtons = 
+                let replyMarkup = 
                     chat.KnownUsers 
-                    |> List.map (fun u ->
-                        let isChecked = 
-                            if tx.SplittingSubset |> List.exists (fun u' -> u'.Id = u.Id)
-                                        then "✅"
-                                        else "❌"
-
-                        let btn = ReplyMarkups.InlineKeyboardButton()
-                        btn.Text <- sprintf "%s %s" isChecked (formatUser u) // ❌ ✅
-                        btn.CallbackData <- sprintf "toggle_splitting_subset#%s" (u.Id.ToString())
-                        btn)
-
-                let everybodyButton = ReplyMarkups.InlineKeyboardButton()
-                everybodyButton.Text <- EverybodyButton lang
-                everybodyButton.CallbackData <- "toggle_splitting_subset#everybody" 
-
-                let rows = 
-                    (divideByRows 2 userButtons) @ [[everybodyButton]]
-                    |> Seq.map (Seq.ofList)
-
-                let replyMarkup = ReplyMarkups.InlineKeyboardMarkup(rows)
+                    |> List.map (fun u -> (u, tx.SplittingSubset |> List.exists (fun u' -> u'.Id = u.Id)))
+                    |> generateReplyMarkup lang
 
                 let! _ = client.EditMessageReplyMarkupAsync(ChatId msg.Chat.Id, msg.MessageId, replyMarkup, cts)
                             |> Async.AwaitTask
@@ -250,6 +259,47 @@ module PaymentHandler =
                 |> tryFetchChat
                 |> Async.map toggleUser
                 |> Async.map saveTx
+                |> Async.bind sendReplyAnswer
+
+            return Ok res
+        } |> Some
+
+    let replyDeleteTx botContext (update: Update) = 
+        fun () -> async {
+            let msg = update.CallbackQuery.Message
+            let client = botContext.BotClient
+            let db = botContext.Storage.Database
+            let chats = db.GetCollection(Collections.Chats)
+            let cts = botContext.CancellationToken
+            let lang = getLanguageCode update
+
+            let tryFetchChat chatId = async {
+                let! chat = tryFindChat chats cts chatId
+                return chat.Value
+            }
+
+            let deleteTx chat =  
+                let tx = chat.Transactions |> List.find (fun tx -> tx.Message.Id = msg.ReplyToMessage.MessageId)
+                tx
+                |> deleteTransaction chat
+                |> upsertChat cts chats |> ignore
+                ()
+
+            let sendReplyAnswer () = async {
+                let replyMarkup = ReplyMarkups.InlineKeyboardMarkup(Seq.empty : System.Collections.Generic.IEnumerable<ReplyMarkups.InlineKeyboardButton>)
+
+                // let! _ = client.EditMessageReplyMarkupAsync(ChatId msg.Chat.Id, msg.MessageId, replyMarkup, cts)
+
+                let! _ = client.EditMessageTextAsync(ChatId(msg.Chat.Id), msg.MessageId, (DeletedMessage lang), Telegram.Bot.Types.Enums.ParseMode.Default, true, replyMarkup, cts)
+                            |> Async.AwaitTask
+
+                return ()
+            }
+
+            let! res = 
+                msg.Chat.Id
+                |> tryFetchChat
+                |> Async.map deleteTx
                 |> Async.bind sendReplyAnswer
 
             return Ok res
