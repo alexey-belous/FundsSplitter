@@ -67,7 +67,8 @@ module UpdatesHandler =
             commandHandler "/debts" DebtsHandler.handlerFunction
 
             commandHandler "/pay" PaymentHandler.handlerFunction
-            replyCallbackHandler "toggle_splitting_subset" PaymentHandler.replyCallbackHandlerFunction
+            replyCallbackHandler "toggle_splitting_subset" PaymentHandler.replyToggleUser
+            replyCallbackHandler "delete_tx" PaymentHandler.replyDeleteTx
 
             commandHandler "/payback" SettleUpHandler.handlerFunction 
             editedCommandHandler "/payback" SettleUpHandler.updateHandlerFunction
