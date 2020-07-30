@@ -45,6 +45,9 @@ module PaymentHandler =
     let DeletedMessageEn = "Deleted..."
     let DeletedMessageRu = "Удалено..."
 
+    let SendTxEn = "Send payment"
+    let SendTxRu = "Отправить расход"
+
     let ChatNotFoundError = function
         | En -> ChatNotFoundErrorEn
         | Ru -> ChatNotFoundErrorRu
@@ -73,7 +76,10 @@ module PaymentHandler =
     let DeletedMessage = function
         | En -> DeletedMessageEn
         | Ru -> DeletedMessageRu
-    
+
+    let SendTx = function
+        | En -> SendTxEn
+        | Ru -> SendTxRu    
 
     type TxRaw = 
         {
@@ -303,4 +309,20 @@ module PaymentHandler =
                 |> Async.bind sendReplyAnswer
 
             return Ok res
+        } |> Some
+
+
+    let replyInlineQuery botContext (update: Update) = 
+        fun () -> async {
+            let client = botContext.BotClient
+            let lang = getLanguageCode update
+
+            let commandText = sprintf "/pay %s" update.InlineQuery.Query
+            let results = [InlineQueryResults.InlineQueryResultArticle("1", SendTx lang,  InlineQueryResults.InputTextMessageContent(commandText)) :> InlineQueryResults.InlineQueryResultBase]
+                            |> Seq.ofList
+            let! _ = client.AnswerInlineQueryAsync(update.InlineQuery.Id, results)
+                        |> Async.AwaitTask
+        
+
+            return Ok ()
         } |> Some
