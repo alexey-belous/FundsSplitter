@@ -16,11 +16,11 @@ module AsyncResult =
             | Error e -> e |> Error
     }
 
-    let bindAsync f r = async {
+    let bindAsync (f: 'a -> Async<Result<'b, _>>) r = async {
         let! r' = r
         match r' with
         | Ok r'' -> return! f r''
-        | e -> return e
+        | Error e -> return Error e
     }
 
     let map f r = async {
