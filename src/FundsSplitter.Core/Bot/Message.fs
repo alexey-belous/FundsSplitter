@@ -16,13 +16,14 @@ module Message =
         | _ -> Ru
 
     let getLanguageCode (update: Update) = 
-        let messages = [
-            (if update.Message <> null then Some update.Message else None);
-            (if update.EditedMessage <> null then Some update.EditedMessage else None);
-            (if update.CallbackQuery <> null then Some update.CallbackQuery.Message else None);
+        let froms = [
+            (if update.Message <> null then Some update.Message.From else None);
+            (if update.EditedMessage <> null then Some update.EditedMessage.From else None);
+            (if update.CallbackQuery <> null then Some update.CallbackQuery.Message.From else None);
+            (if update.InlineQuery <> null then Some update.InlineQuery.From else None )
         ]
-        match messages |> List.tryFind Option.isSome with
-        | Some msg -> msg.Value.From.LanguageCode |> (|LanguageCode|)
+        match froms |> List.tryFind Option.isSome with
+        | Some from -> from.Value.LanguageCode |> (|LanguageCode|)
         | None -> En
 
     let exctractEntitiesText entityType (message: Message) = 

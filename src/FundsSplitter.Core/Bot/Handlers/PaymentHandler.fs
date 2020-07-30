@@ -45,6 +45,9 @@ module PaymentHandler =
     let DeletedMessageEn = "Deleted..."
     let DeletedMessageRu = "Удалено..."
 
+    let SendTxEn = "Send payment"
+    let SendTxRu = "Отправить расход"
+
     let ChatNotFoundError = function
         | En -> ChatNotFoundErrorEn
         | Ru -> ChatNotFoundErrorRu
@@ -73,7 +76,10 @@ module PaymentHandler =
     let DeletedMessage = function
         | En -> DeletedMessageEn
         | Ru -> DeletedMessageRu
-    
+
+    let SendTx = function
+        | En -> SendTxEn
+        | Ru -> SendTxRu    
 
     type TxRaw = 
         {
@@ -218,23 +224,25 @@ module PaymentHandler =
             }
 
             let toggleUser (chat: Transactions.Types.Chat) = 
-                let tx = chat.Transactions |> List.find (fun tx -> tx.Message.Id = update.CallbackQuery.Message.ReplyToMessage.MessageId)
-
+                let tx = chat.Transactions |> List.find (fun tx -> tx.Message.Id = msg.ReplyToMessage.MessageId)
+                if tx.User.Id <> update.CallbackQuery.From.Id then
+                    Error "Access"
+                else
                 let parsedPayload = update.CallbackQuery.Data.Split('#').[1]
                 if parsedPayload = "everybody" 
-                then //Everybody case
+                then // Everybody case
                     if tx.SplittingSubset.Length = chat.KnownUsers.Length then
-                        ({ tx with SplittingSubset = [] }, chat)
+                        Ok ({ tx with SplittingSubset = [] }, chat)
                     else
-                    ({ tx with SplittingSubset = chat.KnownUsers }, chat)
+                    Ok ({ tx with SplittingSubset = chat.KnownUsers }, chat)
 
                 else // Particular member case
                 let userId = Int32.Parse(update.CallbackQuery.Data.Split('#').[1])
                 let user = chat.KnownUsers |> List.find (fun u -> u.Id = userId)
                 if tx.SplittingSubset |> List.exists (fun u -> u.Id = userId) then
-                    ({ tx with SplittingSubset = tx.SplittingSubset |> List.filter (fun u -> u.Id <> user.Id)}, chat)
+                    Ok ({ tx with SplittingSubset = tx.SplittingSubset |> List.filter (fun u -> u.Id <> user.Id)}, chat)
                 else
-                    ({ tx with SplittingSubset = user :: tx.SplittingSubset }, chat)
+                    Ok ({ tx with SplittingSubset = user :: tx.SplittingSubset }, chat)
 
             let saveTx (tx, chat) =  
                 tx
@@ -251,17 +259,18 @@ module PaymentHandler =
                 let! _ = client.EditMessageReplyMarkupAsync(ChatId msg.Chat.Id, msg.MessageId, replyMarkup, cts)
                             |> Async.AwaitTask
 
-                return ()
+                return Ok ()
             }
 
             let! res = 
                 msg.Chat.Id
                 |> tryFetchChat
                 |> Async.map toggleUser
-                |> Async.map saveTx
-                |> Async.bind sendReplyAnswer
+                |> AsyncResult.map saveTx
+                |> AsyncResult.bindAsync sendReplyAnswer 
+                |> Async.map (Result.mapError ignore)
 
-            return Ok res
+            return res
         } |> Some
 
     let replyDeleteTx botContext (update: Update) = 
@@ -280,27 +289,46 @@ module PaymentHandler =
 
             let deleteTx chat =  
                 let tx = chat.Transactions |> List.find (fun tx -> tx.Message.Id = msg.ReplyToMessage.MessageId)
+
+                if tx.User.Id <> update.CallbackQuery.From.Id then
+                    Error "Access"
+                else
+
                 tx
                 |> deleteTransaction chat
                 |> upsertChat cts chats |> ignore
-                ()
+                Ok ()
 
             let sendReplyAnswer () = async {
                 let replyMarkup = ReplyMarkups.InlineKeyboardMarkup(Seq.empty : System.Collections.Generic.IEnumerable<ReplyMarkups.InlineKeyboardButton>)
 
-                // let! _ = client.EditMessageReplyMarkupAsync(ChatId msg.Chat.Id, msg.MessageId, replyMarkup, cts)
-
                 let! _ = client.EditMessageTextAsync(ChatId(msg.Chat.Id), msg.MessageId, (DeletedMessage lang), Telegram.Bot.Types.Enums.ParseMode.Default, true, replyMarkup, cts)
                             |> Async.AwaitTask
 
-                return ()
+                return Ok ()
             }
 
             let! res = 
                 msg.Chat.Id
                 |> tryFetchChat
                 |> Async.map deleteTx
-                |> Async.bind sendReplyAnswer
+                |> AsyncResult.bindAsync sendReplyAnswer
+                |> Async.map (Result.mapError ignore)
 
-            return Ok res
+            return res
+        } |> Some
+
+    let replyInlineQuery botContext (update: Update) = 
+        fun () -> async {
+            let client = botContext.BotClient
+            let lang = getLanguageCode update
+
+            let commandText = sprintf "/pay %s" update.InlineQuery.Query
+            let results = [InlineQueryResults.InlineQueryResultArticle("1", SendTx lang,  InlineQueryResults.InputTextMessageContent(commandText)) :> InlineQueryResults.InlineQueryResultBase]
+                            |> Seq.ofList
+            let! _ = client.AnswerInlineQueryAsync(update.InlineQuery.Id, results)
+                        |> Async.AwaitTask
+        
+
+            return Ok ()
         } |> Some
