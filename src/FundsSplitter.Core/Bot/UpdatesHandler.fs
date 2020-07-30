@@ -57,6 +57,11 @@ module UpdatesHandler =
             else None
         else None
 
+    let inlineQueryHandler (handler: UpdateHandler) (context: BotContext) (update: Update) = 
+        if update.InlineQuery <> null then
+            handler context update
+        else None
+
     let routes = 
         choose [
             commandHandler "/help" HelpHandler.handlerFunction
@@ -69,6 +74,7 @@ module UpdatesHandler =
             commandHandler "/pay" PaymentHandler.handlerFunction
             replyCallbackHandler "toggle_splitting_subset" PaymentHandler.replyToggleUser
             replyCallbackHandler "delete_tx" PaymentHandler.replyDeleteTx
+            inlineQueryHandler PaymentHandler.replyInlineQuery
 
             commandHandler "/payback" SettleUpHandler.handlerFunction 
             editedCommandHandler "/payback" SettleUpHandler.updateHandlerFunction
