@@ -1,4 +1,4 @@
-namespace FundsSplitter.Core.Analytics
+namespace FundsSplitter.Logic.Analytics
 
 module Types = 
     open System

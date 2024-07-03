@@ -1,11 +1,11 @@
-namespace FundsSplitter.Core.Bot
+namespace FundsSplitter.Logic.Bot
 
 module Lifecycle = 
     open System
     open Microsoft.FSharpLu.Json
     open FSharp.Data
 
-    open FundsSplitter.Core.Logging
+    open FundsSplitter.Logic.Logging
     open Types
 
     type SetWebhookRequest = 

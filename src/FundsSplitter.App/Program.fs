@@ -1,68 +1,55 @@
 ﻿namespace FundsSplitter.App
 
 module Entry = 
-    open System
-    open System.Threading
-
-    open Suave
-    open Suave.Filters
-    open Suave.Operators
-
+    open Microsoft.AspNetCore.Builder
+    open Microsoft.AspNetCore.Hosting
+    open Microsoft.AspNetCore.Http
+    open Microsoft.Extensions.DependencyInjection
+    open Microsoft.AspNetCore
+    open Giraffe
     open FSharp.Data
-    open FundsSplitter.Core
-    open FundsSplitter.Core.Bot.Types
+    open Telegram.Bot
+    open Telegram.Bot.Types
 
-    type Config = JsonProvider<"./config.json">
+    [<Literal>]
+    let SETTINGS_FILENAME = "appsettings.json"
+    type Config = JsonProvider<SETTINGS_FILENAME>
 
-    let updatesHandler botConfig storage = 
-        fun (x: HttpContext) -> async {
-            let! res = 
-                x.request.rawForm
-                |> System.Text.Encoding.UTF8.GetString
-                |> Bot.UpdatesHandler.handleUpdates botConfig storage
-            return! Successful.OK res x
-        }
+    let configureServices (services : IServiceCollection) =
+        services.AddGiraffe() |> ignore
 
-    let routes botConfig storage = 
-        choose [
-            POST >=> choose [path "/api/new-update" >=> updatesHandler botConfig storage ]
-            Suave.RequestErrors.NOT_FOUND "Resource you're looking for is not exists"
-        ]
+    let configureApp (botToken: string) (app : IApplicationBuilder) =
+        let handleWebhook (next: HttpFunc) (ctx: HttpContext) =
+            task {
+                let botClient = new TelegramBotClient(botToken)
+                let! update = ctx.BindJsonAsync<Update>()
+                if update.Message <> null && update.Message.Text <> null 
+                then
+                    let msg = update.Message
+                    let response = sprintf "%s said: %s" msg.From.FirstName msg.Text
+                    do! botClient.SendTextMessageAsync(msg.Chat.Id, response) |> Async.AwaitTask |> Async.Ignore
+                return! next ctx
+            }
+        app.UseGiraffe(
+            choose [
+                route "/webhook" >=> POST >=> handleWebhook
+                setStatusCode 404 >=> text "Not Found"
+            ])
 
     [<EntryPoint>]
     let main argv =
-        let config = Config.Load("./config.json")
-        let botConfig = {
-            Token = config.TelegramBot.Token
-            ApiURL = config.TelegramBot.BotUrl
-        }
-        
-        let startBotRes = 
-            Bot.Lifecycle.startBot botConfig
-            |> Async.RunSynchronously
+        let config = Config.Load(SETTINGS_FILENAME)
+        let botClient = new TelegramBotClient(config.BotSettings.Token)
+        let setWebhookTask = botClient.SetWebhookAsync(config.BotSettings.WebHookUrl)
+        setWebhookTask.Wait()
 
-        match startBotRes with
-        | Error e -> failwith "Error during bot setup. Shutting down..."
-        | _ ->
+        let host = 
+            WebHost.CreateDefaultBuilder()
+                .UseKestrel()
+                .ConfigureServices(configureServices)
+                .Configure(configureApp config.BotSettings.Token)
+                .Build()
 
-        let storage = Storage.initializeStorage config.Storage.ConnectionString
-        let cts = new CancellationTokenSource()
-        let listening, server = 
-            startWebServerAsync
-                { defaultConfig with 
-                    cancellationToken = cts.Token
-                    bindings = [HttpBinding.createSimple HTTP (config.Binding.Ip) (config.Binding.Port) ] } 
-                (routes botConfig storage)
-
-        Async.Start(server, cts.Token)
-
-        let autoEvent = new AutoResetEvent(false);
-        autoEvent.WaitOne() |> ignore
-
-        Bot.Lifecycle.stopBot botConfig
-        |> Async.RunSynchronously
-        |> ignore
-
-        cts.Cancel()
+        host.Run()
 
         0

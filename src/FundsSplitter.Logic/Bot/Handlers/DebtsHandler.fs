@@ -1,13 +1,13 @@
-namespace FundsSplitter.Core.Bot.Handlers
+namespace FundsSplitter.Logic.Bot.Handlers
 
 module DebtsHandler = 
-    open FundsSplitter.Core
-    open FundsSplitter.Core.Storage
-    open FundsSplitter.Core.Bot.Types
-    open FundsSplitter.Core.Bot.Message
-    open FundsSplitter.Core.Transactions.Types
-    open FundsSplitter.Core.Transactions.CrudOperations
-    open FundsSplitter.Core.Transactions.ProcessingLogic
+    open FundsSplitter.Logic
+    open FundsSplitter.Logic.Storage
+    open FundsSplitter.Logic.Bot.Types
+    open FundsSplitter.Logic.Bot.Message
+    open FundsSplitter.Logic.Transactions.Types
+    open FundsSplitter.Logic.Transactions.CrudOperations
+    open FundsSplitter.Logic.Transactions.ProcessingLogic
 
     open Telegram.Bot
     open Telegram.Bot.Types
@@ -44,7 +44,7 @@ module DebtsHandler =
                 | None -> return lang |> ChatNotFoundError |> Error 
             }
 
-            let formatDebts (debts: FundsSplitter.Core.Transactions.Types.Debt list) = 
+            let formatDebts (debts: FundsSplitter.Logic.Transactions.Types.Debt list) = 
                 if debts.Length = 0 || debts |> List.exists (fun d -> d.Amount > 0M) |> not then
                     NoDebtsMessage lang
                 else

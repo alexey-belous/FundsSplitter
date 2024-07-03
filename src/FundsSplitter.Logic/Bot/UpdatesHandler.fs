@@ -1,13 +1,13 @@
-namespace FundsSplitter.Core.Bot
+namespace FundsSplitter.Logic.Bot
 
 module UpdatesHandler = 
     open System
     open System.Threading
 
-    open FundsSplitter.Core.Bot.Types
-    open FundsSplitter.Core.Bot.Message
-    open FundsSplitter.Core.Bot.Handlers
-    open FundsSplitter.Core.Bot.Analytics
+    open FundsSplitter.Logic.Bot.Types
+    open FundsSplitter.Logic.Bot.Message
+    open FundsSplitter.Logic.Bot.Handlers
+    open FundsSplitter.Logic.Bot.Analytics
 
     open Microsoft.FSharpLu.Json
     open Telegram.Bot

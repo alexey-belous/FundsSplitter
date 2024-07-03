@@ -1,11 +1,11 @@
 
-namespace FundsSplitter.Core.Bot
+namespace FundsSplitter.Logic.Bot
 
 module Analytics = 
     open Types
-    open FundsSplitter.Core.Storage
-    open FundsSplitter.Core.Analytics.Types
-    open FundsSplitter.Core.Analytics.Storage
+    open FundsSplitter.Logic.Storage
+    open FundsSplitter.Logic.Analytics.Types
+    open FundsSplitter.Logic.Analytics.Storage
 
     open Telegram.Bot.Types
     open Telegram.Bot.Types.Enums

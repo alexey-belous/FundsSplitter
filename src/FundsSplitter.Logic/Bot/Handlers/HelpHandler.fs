@@ -1,9 +1,9 @@
-namespace FundsSplitter.Core.Bot.Handlers
+namespace FundsSplitter.Logic.Bot.Handlers
 
 module HelpHandler = 
-    open FundsSplitter.Core.Storage
-    open FundsSplitter.Core.Bot.Message
-    open FundsSplitter.Core.Bot.Types
+    open FundsSplitter.Logic.Storage
+    open FundsSplitter.Logic.Bot.Message
+    open FundsSplitter.Logic.Bot.Types
 
     open Telegram.Bot
     open Telegram.Bot.Types

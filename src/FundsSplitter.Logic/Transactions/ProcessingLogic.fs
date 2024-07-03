@@ -1,7 +1,7 @@
-namespace FundsSplitter.Core.Transactions
+namespace FundsSplitter.Logic.Transactions
 
 module ProcessingLogic = 
-    open FundsSplitter.Core.Transactions.Types
+    open FundsSplitter.Logic.Transactions.Types
 
     type DebtsMatrix = 
         {

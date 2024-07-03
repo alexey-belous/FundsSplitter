@@ -1,15 +1,15 @@
-namespace FundsSplitter.Core.Bot.Handlers
+namespace FundsSplitter.Logic.Bot.Handlers
 
 module JoinHandler = 
     open MongoDB.Driver
     open MongoDB.Bson
 
-    open FundsSplitter.Core
-    open FundsSplitter.Core.Json
-    open FundsSplitter.Core.Storage
-    open FundsSplitter.Core.Transactions.CrudOperations
-    open FundsSplitter.Core.Bot.Types
-    open FundsSplitter.Core.Bot.Message
+    open FundsSplitter.Logic
+    open FundsSplitter.Logic.Json
+    open FundsSplitter.Logic.Storage
+    open FundsSplitter.Logic.Transactions.CrudOperations
+    open FundsSplitter.Logic.Bot.Types
+    open FundsSplitter.Logic.Bot.Message
 
     open Telegram.Bot
     open Telegram.Bot.Types

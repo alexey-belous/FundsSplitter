@@ -1,4 +1,4 @@
-namespace FundsSplitter.Core.Transactions
+namespace FundsSplitter.Logic.Transactions
 
 module Types =
     open System

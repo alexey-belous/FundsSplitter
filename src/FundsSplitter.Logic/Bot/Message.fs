@@ -1,4 +1,4 @@
-namespace FundsSplitter.Core.Bot
+namespace FundsSplitter.Logic.Bot
 
 module Message = 
     open System 
@@ -56,5 +56,5 @@ module Message =
     let sendMarkdownAnswer (client: TelegramBotClient) (msg: Message) cts res = 
         sendAnswerWithParseMode (Enums.ParseMode.Markdown) client msg cts res
 
-    let formatUser (user: FundsSplitter.Core.Transactions.Types.User) = 
+    let formatUser (user: FundsSplitter.Logic.Transactions.Types.User) = 
         sprintf "%s (@%s)" (user.Name) (user.Username)

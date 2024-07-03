@@ -1,4 +1,4 @@
-namespace FundsSplitter.Core.UnitTests
+namespace FundsSplitter.Logic.Tests
 
 module TxCrudOperationsTests = 
     open System
@@ -7,8 +7,8 @@ module TxCrudOperationsTests =
 
     open TestHelpers
 
-    open FundsSplitter.Core.Transactions.Types
-    open FundsSplitter.Core.Transactions.CrudOperations
+    open FundsSplitter.Logic.Transactions.Types
+    open FundsSplitter.Logic.Transactions.CrudOperations
 
     [<Fact>]
     let ``Add tx to the chat and tx author to the known users`` () =

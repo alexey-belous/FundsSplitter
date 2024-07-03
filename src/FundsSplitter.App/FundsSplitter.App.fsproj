@@ -1,24 +1,22 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
-
   <ItemGroup>
-    <Content Include="./config.json">
+    <Content Include="./appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Compile Include="Program.fs" />
   </ItemGroup>
-
   <ItemGroup>
-    <ProjectReference Include="..\FundsSplitter.Core\FundsSplitter.Core.fsproj" />
+    <ProjectReference Include="..\FundsSplitter.Logic\FundsSplitter.Logic.fsproj" />
   </ItemGroup>
-
   <ItemGroup>
-    <PackageReference Include="FSharp.Data" Version="3.3.3" />
-    <PackageReference Include="Suave" Version="2.5.6" />
+    <PackageReference Include="FSharp.Data" Version="6.4.0" />
+    <PackageReference Include="Giraffe" Version="6.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.2.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" />
+    <PackageReference Include="Telegram.Bot" Version="19.0.0" />
   </ItemGroup>
-
 </Project>

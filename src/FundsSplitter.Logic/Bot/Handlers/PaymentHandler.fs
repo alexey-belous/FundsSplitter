@@ -1,16 +1,16 @@
-namespace FundsSplitter.Core.Bot.Handlers
+namespace FundsSplitter.Logic.Bot.Handlers
 
 module PaymentHandler = 
     open System
 
-    open FundsSplitter.Core
-    open FundsSplitter.Core.Storage
-    open FundsSplitter.Core.Strings
-    open FundsSplitter.Core.Bot.Types
-    open FundsSplitter.Core.Bot.Message
-    open FundsSplitter.Core.Transactions.Types
-    open FundsSplitter.Core.Transactions.CrudOperations
-    open FundsSplitter.Core.Transactions.ProcessingLogic
+    open FundsSplitter.Logic
+    open FundsSplitter.Logic.Storage
+    open FundsSplitter.Logic.Strings
+    open FundsSplitter.Logic.Bot.Types
+    open FundsSplitter.Logic.Bot.Message
+    open FundsSplitter.Logic.Transactions.Types
+    open FundsSplitter.Logic.Transactions.CrudOperations
+    open FundsSplitter.Logic.Transactions.ProcessingLogic
 
     open Telegram.Bot
     open Telegram.Bot.Types
@@ -83,7 +83,7 @@ module PaymentHandler =
 
     type TxRaw = 
         {
-            Chat: FundsSplitter.Core.Transactions.Types.Chat
+            Chat: FundsSplitter.Logic.Transactions.Types.Chat
             Description: string
             Amount: decimal
         }

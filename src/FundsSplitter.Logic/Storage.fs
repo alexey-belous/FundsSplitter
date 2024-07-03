@@ -1,9 +1,6 @@
-namespace FundsSplitter.Core
+namespace FundsSplitter.Logic
 
 module Storage = 
-    open MongoDB.Bson
-    open MongoDB.Driver
-
     type CollectionsType = 
         {
             Chats: string
@@ -22,24 +19,24 @@ module Storage =
     type Storage = 
         {
             ConnectionString: string
-            Client: MongoClient
-            Database: IMongoDatabase
+            // Client: MongoClient
+            // Database: IMongoDatabase
         }
 
     let initializeStorage connectionString = 
-        let client = new MongoClient(connectionString = connectionString)
-        let db = client.GetDatabase("fundssplitter")
-        let existingCollections = db.ListCollectionNames().ToList()
+        // let client = new MongoClient(connectionString = connectionString)
+        // let db = client.GetDatabase("fundssplitter")
+        // let existingCollections = db.ListCollectionNames().ToList()
 
-        collections 
-        |> List.iter (fun c -> 
-            if existingCollections |> Seq.contains c |> not
-            then db.CreateCollection(c)
-            else ())
+        // collections 
+        // |> List.iter (fun c -> 
+        //     if existingCollections |> Seq.contains c |> not
+        //     then db.CreateCollection(c)
+        //     else ())
 
         {
             ConnectionString = connectionString
-            Client = client
-            Database = db
+            // Client = client
+            // Database = db
         }
         

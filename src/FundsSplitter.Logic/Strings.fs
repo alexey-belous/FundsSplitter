@@ -1,4 +1,4 @@
-namespace FundsSplitter.Core
+namespace FundsSplitter.Logic
 
 module Strings = 
     open System

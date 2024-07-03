@@ -1,4 +1,4 @@
-namespace FundsSplitter.Core
+namespace FundsSplitter.Logic
 
 module Logging = 
     let logResult msgSuccess msgError res = 

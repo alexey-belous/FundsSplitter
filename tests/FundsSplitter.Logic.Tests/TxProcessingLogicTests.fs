@@ -1,4 +1,4 @@
-namespace FundsSplitter.Core.UnitTests
+namespace FundsSplitter.Logic.Tests
 
 module TxProcessingLogicTests = 
     open System
@@ -7,8 +7,8 @@ module TxProcessingLogicTests =
 
     open TestHelpers
 
-    open FundsSplitter.Core.Transactions.Types
-    open FundsSplitter.Core.Transactions.ProcessingLogic
+    open FundsSplitter.Logic.Transactions.Types
+    open FundsSplitter.Logic.Transactions.ProcessingLogic
 
     [<Fact>]
     let ``Should calculate transaction debts for tx with two users `` () = 

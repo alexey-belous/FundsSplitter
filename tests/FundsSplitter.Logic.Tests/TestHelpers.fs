@@ -1,9 +1,9 @@
-namespace FundsSplitter.Core.UnitTests
+namespace FundsSplitter.Logic.Tests
 
 module TestHelpers = 
     open System
     
-    open FundsSplitter.Core.Transactions.Types
+    open FundsSplitter.Logic.Transactions.Types
 
     let users = [
         {
